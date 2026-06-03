@@ -1,3 +1,8 @@
+using FluxoCaixa.Domain.Interfaces;
+using FluxoCaixa.Infrastructure.Persistence;
+using FluxoCaixa.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -21,3 +26,10 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+builder.Services.AddDbContext<FluxoCaixaDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<ILancamentoRepository, LancamentoRepository>();
+builder.Services.AddScoped<IOutboxEventRepository, OutboxEventRepository>();

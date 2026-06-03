@@ -9,7 +9,7 @@ namespace FluxoCaixa.Domain.Entities
     {
         public Guid Id { get; private set; }
 
-        public Guid AggregateId { get; private set; }
+        public Guid LancamentoId { get; private set; }
 
         public string EventType { get; private set; }
 
@@ -27,12 +27,11 @@ namespace FluxoCaixa.Domain.Entities
 
         public OutboxEvent(
             Guid aggregateId,
-            string eventType,
             string payload)
         {
-            Id = Guid.NewGuid();
-            AggregateId = aggregateId;
-            EventType = eventType;
+            Id = Guid.CreateVersion7();
+            LancamentoId = aggregateId;
+            EventType = "LancamentoCriado";
             Payload = payload;
             Status = StatusEvento.Pendente;
             CreatedAt = DateTime.UtcNow;

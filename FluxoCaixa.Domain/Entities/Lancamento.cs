@@ -9,8 +9,6 @@ namespace FluxoCaixa.Domain.Entities
     {
         public Guid Id { get; private set; }
 
-        public Guid UsuarioId { get; private set; }
-
         public TipoLancamento Tipo { get; private set; }
 
         public decimal Valor { get; private set; }
@@ -22,12 +20,13 @@ namespace FluxoCaixa.Domain.Entities
         }
 
         public Lancamento(
-            Guid usuarioId,
             TipoLancamento tipo,
             decimal valor)
         {
-            Id = Guid.NewGuid();
-            UsuarioId = usuarioId;
+            if (valor <= 0)
+                throw new ArgumentException(
+                    "O valor deve ser maior que zero.");
+            Id = Guid.CreateVersion7();
             Tipo = tipo;
             Valor = valor;
             DataCriacao = DateTime.UtcNow;
