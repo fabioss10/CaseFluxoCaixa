@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="FluxoCaixa.Api/FluxoCaixa.Api.csproj" />
+  <Project Path="FluxoCaixa.Application/FluxoCaixa.Application.csproj" />
+  <Project Path="FluxoCaixa.Domain/FluxoCaixa.Domain.csproj" />
+  <Project Path="FluxoCaixa.Infrastructure/FluxoCaixa.Infrastructure.csproj" />
+  <Project Path="FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" />
+</Solution>
