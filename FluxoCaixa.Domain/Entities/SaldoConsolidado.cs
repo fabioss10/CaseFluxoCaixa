@@ -4,6 +4,10 @@ using System.Text;
 
 namespace FluxoCaixa.Domain.Entities
 {
+
+    // analisar concorrencia 
+
+
     public class SaldoConsolidado
     {
         public Guid UsuarioId { get; private set; }
