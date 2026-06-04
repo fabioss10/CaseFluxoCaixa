@@ -15,5 +15,17 @@ namespace FluxoCaixa.Infrastructure.Persistence
 
         public DbSet<Lancamento> Lancamentos { get; set; }
         public DbSet<OutboxEvent> OutboxEvents { get; set; }
+
+        public DbSet<SaldoConsolidado> SaldosConsolidados { get; set; }
+
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<SaldoConsolidado>()
+                .HasKey(x => x.Data);
+        }
+
     }
 }

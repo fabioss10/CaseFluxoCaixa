@@ -33,6 +33,9 @@ builder.Services.AddDbContext<FluxoCaixaDbContext>(options =>
 builder.Services.AddScoped<ILancamentoRepository, LancamentoRepository>();
 builder.Services.AddScoped<IOutboxEventRepository, OutboxEventRepository>();
 builder.Services.AddScoped<ICriarLancamentoService, CriarLancamentoService>();
+builder.Services.AddScoped<IConsultarSaldoService, ConsultarSaldoService>(); 
+builder.Services.AddScoped<IProcessadorOutboxService, ProcessadorOutboxService>();
+builder.Services.AddScoped<ISaldoConsolidadoRepository, SaldoConsolidadoRepository>();
 
 
 var app = builder.Build();

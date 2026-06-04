@@ -22,4 +22,42 @@ namespace FluxoCaixa.Api.Controllers
             return Ok(id);
         }
     }
+    [ApiController]
+    [Route("api/saldos")]
+    public class SaldosController
+        : ControllerBase
+    {
+        private readonly IConsultarSaldoService
+            _service;
+
+        public SaldosController(
+            IConsultarSaldoService service)
+        {
+            _service = service;
+        }
+
+        [HttpGet("{data}")]
+        public async Task<IActionResult>
+            ObterPorData(string data)
+        {
+            if (!DateOnly.TryParse(
+                    data,
+                    out var dataConsulta))
+            {
+                return BadRequest(
+                    "Data inválida.");
+            }
+
+            var saldo =
+                await _service
+                    .ObterPorDataAsync(
+                        dataConsulta);
+
+            if (saldo == null)
+                return NotFound();
+
+            return Ok(saldo);
+        }
+    }
 }
+

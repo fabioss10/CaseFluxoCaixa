@@ -4,5 +4,7 @@
   <Project Path="FluxoCaixa.Domain/FluxoCaixa.Domain.csproj" />
   <Project Path="FluxoCaixa.Infrastructure/FluxoCaixa.Infrastructure.csproj" />
   <Project Path="FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" />
-  <Project Path="FluxoCaixa.Worker/FluxoCaixa.Worker.csproj" Id="f7d8a9bb-798d-4371-ae47-e5b018308523" />
+  <Project Path="FluxoCaixa.Worker/FluxoCaixa.Worker.csproj" Id="f7d8a9bb-798d-4371-ae47-e5b018308523">
+    <Build Solution="Debug|*" Project="false" />
+  </Project>
 </Solution>

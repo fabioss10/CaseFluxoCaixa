@@ -1,8 +1,9 @@
-﻿using FluxoCaixa.Infrastructure.Persistence;
+﻿using FluxoCaixa.Application.Interfaces;
+using FluxoCaixa.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 
 
 namespace FluxoCaixa.Worker
@@ -21,47 +22,31 @@ namespace FluxoCaixa.Worker
             _scopeFactory = scopeFactory;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                using var scope = _scopeFactory.CreateScope();
+                using var scope =
+                    _scopeFactory.CreateScope();
 
-                var db = scope.ServiceProvider.GetRequiredService<FluxoCaixaDbContext>();
+                var processador =
+                    scope.ServiceProvider
+                        .GetRequiredService<
+                            IProcessadorOutboxService>();
 
-                var eventos = await db.OutboxEvents
-                    .Where(x => x.Status == Domain.Enums.StatusEvento.Pendente)
-                    .ToListAsync(stoppingToken);
-
-                foreach (var evento in eventos)
-                {
-                    try
-                    {
-                        // SIMULA envio para mensageria
-                        Console.WriteLine($"Processando evento {evento.Id}");
-                        //
-
-                        evento.MarcarComoProcessado();
-
-                        db.OutboxEvents.Update(evento);
-                    }
-                    catch
-                    {
-                        evento.MarcarComoErro();
-                        db.OutboxEvents.Update(evento);
-                    }
-                    
-                }
-
-                await db.SaveChangesAsync(stoppingToken);
+                await processador
+                    .ProcessarAsync(stoppingToken);
 
                 //Espera 3 segundos antes de rodar novamente.Isso evita:
                 //loop agressivo
                 //sobrecarga no banco
                 //consumo excessivo de CPU
-
-                await Task.Delay(3000, stoppingToken);
+                await Task.Delay(
+                    3000,
+                    stoppingToken);
             }
         }
+        
     }
 }
