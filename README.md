@@ -127,7 +127,7 @@ O sistema foi desenhado sob os preceitos de uma **Arquitetura Evolutiva**. Embor
 * **Estratégia de Pruning e Cold Storage para o Outbox:** Como os registros da tabela `OutboxEvents` perdem o valor transacional logo após serem processados com sucesso, deve-se implementar uma rotina agendada (Job/Cron) para expurgo (*Pruning*). Eventos com status `Processado` há mais de 3 dias são automaticamente deletados ou movidos em lote para uma base de histórico (*Cold Storage* ou *Data Lake*), mantendo a tabela principal e o seu índice filtrado sempre extremamente leves e residentes na memória RAM.
 * **Particionamento de Tabelas por Data:** Conforme o histórico de lançamentos acumula dezenas de milhões de linhas ao longo dos anos, a tabela `Lancamentos` pode aplicar o particionamento físico em disco com base na coluna `DataCriacao` (ex: uma partição física por mês ou por ano). Isso otimiza rotinas de manutenção, acelera relatórios de BI e garante que queries históricas não impactem a performance das escritas do dia atual.
 
-#### 🔐 Segurança e Governança de Acesso: Autenticação via Padrão OAuth 2.0 / JWT
+#### Segurança e Governança de Acesso: Autenticação via Padrão OAuth 2.0 / JWT
 Para garantir a proteção de dados financeiros e a auditoria estrita exigida pelo setor bancário, o ecossistema foi projetado para evoluir integrando uma camada de segurança baseada no padrão **OAuth 2.0 utilizando JSON Web Tokens (JWT)**.
 
 * **Isolamento de Identidade (Identity Provider):** As credenciais dos usuários e comerciantes não serão gerenciadas pela Web API transacional. A validação de identidade será delegada a um servidor centralizado de autenticação (como Keycloak, Azure AD ou IdentityServer), emitindo tokens assinados criptograficamente.
