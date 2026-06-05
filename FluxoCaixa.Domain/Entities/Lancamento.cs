@@ -39,9 +39,7 @@ namespace FluxoCaixa.Domain.Entities
             TipoLancamento tipo,
             decimal valor)
         {
-            if (valor <= 0)
-                throw new ArgumentException(
-                    "O valor deve ser maior que zero.");
+           
             Id = Guid.CreateVersion7();
             Tipo = tipo;
             Valor = valor;

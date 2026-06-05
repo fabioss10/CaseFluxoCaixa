@@ -12,7 +12,7 @@ namespace FluxoCaixa.Domain.Interfaces
     {
         Task AdicionarAsync(OutboxEvent evento);
 
-        Task<List<OutboxEvent>> ObterPendentesAsync();
+        Task<List<OutboxEvent>> ObterPendentesAsync(CancellationToken cancellationToken = default);
 
         Task AtualizarAsync(OutboxEvent evento);
     }

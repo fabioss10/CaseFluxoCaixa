@@ -1,6 +1,10 @@
 ﻿using FluxoCaixa.Application.DTOs;
 using FluxoCaixa.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FluxoCaixa.Api.Controllers
 {
@@ -12,52 +16,28 @@ namespace FluxoCaixa.Api.Controllers
 
         public LancamentosController(ICriarLancamentoService service)
         {
-            _service = service;
+            //conceito fail fast
+            _service = service ?? throw new ArgumentNullException(nameof(service));
         }
 
+        
         [HttpPost]
-        public async Task<IActionResult> Criar([FromBody] CriarLancamentoRequest request)
+        [HttpPost]
+        public async Task<IActionResult> Criar([FromBody] CriarLancamentoRequest request, CancellationToken cancellationToken)
         {
-            var id = await _service.ExecutarAsync(request);
-            return Ok(id);
-        }
-    }
-    [ApiController]
-    [Route("api/saldos")]
-    public class SaldosController
-        : ControllerBase
-    {
-        private readonly IConsultarSaldoService
-            _service;
+            var id = await _service.ExecutarAsync(request, cancellationToken);
 
-        public SaldosController(
-            IConsultarSaldoService service)
-        {
-            _service = service;
-        }
+            var dataHojeFormatada = DateTime.Today.ToString("yyyy-MM-dd");
 
-        [HttpGet("{data}")]
-        public async Task<IActionResult>
-            ObterPorData(string data)
-        {
-            if (!DateOnly.TryParse(
-                    data,
-                    out var dataConsulta))
+            
+            return Ok(new
             {
-                return BadRequest(
-                    "Data inválida.");
-            }
-
-            var saldo =
-                await _service
-                    .ObterPorDataAsync(
-                        dataConsulta);
-
-            if (saldo == null)
-                return NotFound();
-
-            return Ok(saldo);
+                Resultado="inserido com sucesso",
+                Id = id,
+                UrlConsultaSaldoDoDia = $"/api/saldos/{dataHojeFormatada}"
+            });
         }
-    }
-}
 
+    }
+    
+}

@@ -1,4 +1,5 @@
 ﻿using FluxoCaixa.Application.Interfaces;
+using FluxoCaixa.Domain.Interfaces;
 using FluxoCaixa.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -27,16 +28,20 @@ namespace FluxoCaixa.Worker
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                using var scope =
-                    _scopeFactory.CreateScope();
 
-                var processador =
-                    scope.ServiceProvider
-                        .GetRequiredService<
-                            IProcessadorOutboxService>();
+                /// <summary>
+                /// Abre um escopo temporário delimitado por chaves {}. Isso garante que o método Dispose() 
+                /// do UnitOfWork e do DbContext seja disparado IMEDIATAMENTE após o processamento terminar.
+                /// Evita que a conexão com o banco fique presa durante os 3 segundos de Task.Delay, 
+                /// prevenindo Connection Pooling Starvation e otimizando o uso de memória no Worker.
+                /// </summary>
+                using (var scope = _scopeFactory.CreateScope())
+                {
+                    var processador = scope.ServiceProvider
+                        .GetRequiredService<IProcessadorOutboxService>();
 
-                await processador
-                    .ProcessarAsync(stoppingToken);
+                    await processador.ProcessarAsync(stoppingToken);
+                }
 
                 //Espera 3 segundos antes de rodar novamente.Isso evita:
                 //loop agressivo

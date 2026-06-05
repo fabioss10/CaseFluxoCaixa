@@ -12,6 +12,6 @@ namespace FluxoCaixa.Domain.Interfaces
     {
         Task AdicionarAsync(Lancamento lancamento);
 
-        Task<Lancamento?> ObterPorIdAsync(Guid id);
+        Task<Lancamento?> ObterPorIdAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }

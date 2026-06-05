@@ -10,7 +10,7 @@ namespace FluxoCaixa.Domain.Interfaces
     /// /// </summary>
     public interface ISaldoConsolidadoRepository
     {
-        Task<SaldoConsolidado?> ObterPorDataAsync(DateOnly data);
+        Task<SaldoConsolidado?> ObterPorDataAsync(DateOnly data, CancellationToken cancellationToken = default);
 
         Task AdicionarAsync(SaldoConsolidado saldo);
 

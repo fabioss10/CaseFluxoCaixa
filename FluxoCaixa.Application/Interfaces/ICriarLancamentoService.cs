@@ -8,6 +8,6 @@ namespace FluxoCaixa.Application.Interfaces
     public interface ICriarLancamentoService
     {
         Task<Guid> ExecutarAsync(
-            CriarLancamentoRequest request);
+            CriarLancamentoRequest request, CancellationToken cancellationTokenm);
     }
 }

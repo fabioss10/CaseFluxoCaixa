@@ -8,6 +8,6 @@ namespace FluxoCaixa.Application.Interfaces
     public interface IConsultarSaldoService
     {
         Task<SaldoDiarioResponse?> ObterPorDataAsync(
-            DateOnly data);
+            DateOnly data, CancellationToken cancellationTokenm);
     }
 }

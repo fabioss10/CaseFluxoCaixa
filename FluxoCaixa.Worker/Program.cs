@@ -20,5 +20,7 @@ builder.Services.AddScoped<IProcessadorOutboxService, ProcessadorOutboxService>(
 builder.Services.AddScoped<IOutboxEventRepository, OutboxEventRepository>();
 builder.Services.AddScoped<ISaldoConsolidadoRepository, SaldoConsolidadoRepository>();
 
+builder.Services.AddScoped<IUnitOfWorkRepository, UnitOfWork>();
+
 var host = builder.Build();
 host.Run();

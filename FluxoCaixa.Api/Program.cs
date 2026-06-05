@@ -1,9 +1,13 @@
+using FluentValidation;
 using FluxoCaixa.Application.Interfaces;
 using FluxoCaixa.Application.Services;
+using FluxoCaixa.Application.Validators;
 using FluxoCaixa.Domain.Interfaces;
 using FluxoCaixa.Infrastructure.Persistence;
 using FluxoCaixa.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
+using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 
 
 
@@ -36,6 +40,15 @@ builder.Services.AddScoped<ICriarLancamentoService, CriarLancamentoService>();
 builder.Services.AddScoped<IConsultarSaldoService, ConsultarSaldoService>(); 
 builder.Services.AddScoped<IProcessadorOutboxService, ProcessadorOutboxService>();
 builder.Services.AddScoped<ISaldoConsolidadoRepository, SaldoConsolidadoRepository>();
+builder.Services.AddScoped<IUnitOfWorkRepository, UnitOfWork>();
+
+
+builder.Services.AddValidatorsFromAssemblyContaining<CriarLancamentoRequestValidator>();
+// 1.Registra as regras na pasta Validators
+builder.Services.AddValidatorsFromAssemblyContaining<CriarLancamentoRequestValidator>();
+// 2.Ativa o comportamento automático do framework nas Controllers
+builder.Services.AddFluentValidationAutoValidation();
+
 
 
 var app = builder.Build();

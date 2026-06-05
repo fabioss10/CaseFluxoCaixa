@@ -2,10 +2,9 @@
 using FluxoCaixa.Domain.Interfaces;
 using FluxoCaixa.Infrastructure.Persistence;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-
 
 namespace FluxoCaixa.Infrastructure.Repositories
 {
@@ -20,14 +19,15 @@ namespace FluxoCaixa.Infrastructure.Repositories
 
         public async Task AdicionarAsync(Lancamento lancamento)
         {
+           
             await _context.Lancamentos.AddAsync(lancamento);
-            await _context.SaveChangesAsync();
         }
 
-        public async Task<Lancamento?> ObterPorIdAsync(Guid id)
+        public async Task<Lancamento?> ObterPorIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
+           
             return await _context.Lancamentos
-                .FirstOrDefaultAsync(x => x.Id == id);
+                .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         }
     }
 }

@@ -2,31 +2,30 @@
 using FluxoCaixa.Application.Interfaces;
 using FluxoCaixa.Domain.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FluxoCaixa.Application.Services
 {
-    public class ConsultarSaldoService
-     : IConsultarSaldoService
+    public class ConsultarSaldoService : IConsultarSaldoService
     {
-        private readonly ISaldoConsolidadoRepository
-            _saldoRepository;
+        
+        
+        private readonly ISaldoConsolidadoRepository _saldoRepository;
 
-        public ConsultarSaldoService(
-            ISaldoConsolidadoRepository saldoRepository)
+        public ConsultarSaldoService(ISaldoConsolidadoRepository saldoRepository)
         {
-            _saldoRepository = saldoRepository;
+            _saldoRepository = saldoRepository ?? throw new ArgumentNullException(nameof(saldoRepository));
         }
 
-        public async Task<SaldoDiarioResponse?>
-            ObterPorDataAsync(DateOnly data)
+        // Adicionado CancellationToken para repassar à consulta de I/O do banco de dados
+        public async Task<SaldoDiarioResponse?> ObterPorDataAsync(DateOnly data, CancellationToken cancellationToken = default)
         {
-            var saldo =
-                await _saldoRepository
-                    .ObterPorDataAsync(data);
+            // Repassando o token para o repositório realizar a busca de forma segura
+            var saldo = await _saldoRepository.ObterPorDataAsync(data, cancellationToken);
 
             if (saldo == null)
+            {
                 return new SaldoDiarioResponse
                 {
                     Data = data,
@@ -35,6 +34,7 @@ namespace FluxoCaixa.Application.Services
                     Saldo = 0,
                     UltimaAtualizacao = null
                 };
+            }
 
             return new SaldoDiarioResponse
             {
@@ -42,8 +42,7 @@ namespace FluxoCaixa.Application.Services
                 TotalCreditos = saldo.TotalCreditos,
                 TotalDebitos = saldo.TotalDebitos,
                 Saldo = saldo.Saldo,
-                UltimaAtualizacao =
-                    saldo.UltimaAtualizacao
+                UltimaAtualizacao = saldo.UltimaAtualizacao
             };
         }
     }
