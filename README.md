@@ -100,7 +100,7 @@ O processamento assíncrono atual via `OutboxWorker` em C# com paginação de `T
 Em vez de executar consultas periódicas de `SELECT` (*Polling*) que competem por CPU e conexões de rede com a API transacional, o Debezium escuta e captura as inserções da tabela `OutboxEvents` diretamente nos arquivos binários de log do SQL Server (*Transaction Log*) em disco. Isso reduz o impacto de I/O na tabela para zero e despacha os eventos para os tópicos do Kafka com latência de milissegundos.
 
 #### O grande diferencial competitivo desta solução
-O grande diferencial competitivo desta solução é que **essa mudança drástica de infraestrutura exige zero alterações no Core do Domínio ou na API C#**. Como o sistema foi rigidamente implementado aplicando o princípio de Inversão de Dependência do SOLID, a camada de negócio se comunica com os dados exclusivamente através de contratos abstratos (`IUnitOfWorkRepository`). 
+O grande diferencial competitivo desta solução é que **essa mudança drástica de infraestrutura exige zero alterações no Core do Domínio ou na API C#**. Como o sistema foi rigidamente implementado aplicando o princípio de Inversão de Dependência do SOLID, a camada de negócio se comunica com os dados exclusivamente através de contratos abstratos 
 
 A API continuará apenas persistindo o lançamento e o evento de forma atômica no banco de dados local. O acoplamento é nulo, provando na prática o poder de uma **Arquitetura Evolutiva** capaz de alterar suas engines de mensageria e retransmissão de eventos sem jamais violar ou reescrever as regras de negócio do fluxo de caixa.
 
@@ -126,6 +126,15 @@ O sistema foi desenhado sob os preceitos de uma **Arquitetura Evolutiva**. Embor
 * **Tabelas Otimizadas para Memória (In-Memory OLTP):** A tabela de `SaldosConsolidados`, por ser o ponto central de maior modificação do sistema, pode ser convertida para uma tabela *In-Memory* com durabilidade total (`SCHEMA_AND_DATA`). Isso elimina o gargalo de travas de página em disco, permitindo que o cálculo de saldo atinja latências na casa dos microssegundos.
 * **Estratégia de Pruning e Cold Storage para o Outbox:** Como os registros da tabela `OutboxEvents` perdem o valor transacional logo após serem processados com sucesso, deve-se implementar uma rotina agendada (Job/Cron) para expurgo (*Pruning*). Eventos com status `Processado` há mais de 3 dias são automaticamente deletados ou movidos em lote para uma base de histórico (*Cold Storage* ou *Data Lake*), mantendo a tabela principal e o seu índice filtrado sempre extremamente leves e residentes na memória RAM.
 * **Particionamento de Tabelas por Data:** Conforme o histórico de lançamentos acumula dezenas de milhões de linhas ao longo dos anos, a tabela `Lancamentos` pode aplicar o particionamento físico em disco com base na coluna `DataCriacao` (ex: uma partição física por mês ou por ano). Isso otimiza rotinas de manutenção, acelera relatórios de BI e garante que queries históricas não impactem a performance das escritas do dia atual.
+
+#### 🔐 Segurança e Governança de Acesso: Autenticação via Padrão OAuth 2.0 / JWT
+Para garantir a proteção de dados financeiros e a auditoria estrita exigida pelo setor bancário, o ecossistema foi projetado para evoluir integrando uma camada de segurança baseada no padrão **OAuth 2.0 utilizando JSON Web Tokens (JWT)**.
+
+* **Isolamento de Identidade (Identity Provider):** As credenciais dos usuários e comerciantes não serão gerenciadas pela Web API transacional. A validação de identidade será delegada a um servidor centralizado de autenticação (como Keycloak, Azure AD ou IdentityServer), emitindo tokens assinados criptograficamente.
+* **Autenticação Stateless na API:** A Web API de Lançamentos e Saldos atuará estritamente como um *Resource Server*. Ela validará os tokens JWT de forma *Stateless* (sem consultar o banco de dados de identidade a cada requisição), inspecionando a assinatura pública do emissor e decodificando as *Claims* diretamente na memória RAM, garantindo que a segurança não adicione latência ao pipeline de alta vazão.
+* **Autorização Granular (RBAC/CBAC):** O acesso aos endpoints será restrito com base em papéis (*Roles*) ou permissões (*Claims*). Por exemplo, um endpoint de criação receberá a restrição `[Authorize(Policy = "GravarLancamentos")]`, enquanto a leitura do saldo consolidado exigirá `[Authorize(Policy = "LerSaldos")]`.
+* **Auditoria Integrada ao Domínio:** O ID do usuário autenticado será extraído automaticamente do token JWT pelo pipeline do ASP.NET Core (`ClaimsPrincipal`) e injetado nos contextos do repositório. Isso permitirá registrar nativamente na tabela de `Lancamentos` e no payload do `OutboxEvent` o autor exato de cada movimentação financeira, garantindo rastreabilidade total para fins de conformidade e *Compliance* fiscal.
+
 
 
 
