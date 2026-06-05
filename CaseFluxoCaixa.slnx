@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Itens de Solução/">
+    <File Path="C:/Users/Fabio Silva/OneDrive/Documentos/README.md" />
+    <File Path="FluxoCaixa.Api/banco_completo.sql" />
+  </Folder>
   <Project Path="FluxoCaixa.Api/FluxoCaixa.Api.csproj" />
   <Project Path="FluxoCaixa.Application/FluxoCaixa.Application.csproj" />
   <Project Path="FluxoCaixa.Domain/FluxoCaixa.Domain.csproj" />
