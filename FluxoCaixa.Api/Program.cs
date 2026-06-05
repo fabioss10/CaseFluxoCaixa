@@ -25,9 +25,14 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 
-builder.Services.AddDbContext<FluxoCaixaDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+//builder.Services.AddDbContext<FluxoCaixaDbContext>(options =>
+//    options.UseSqlServer(
+//        builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// CORREÇÃO DE ALTA VAZÃO: Substitui o AddDbContext comum por AddDbContextPool
+// O pool padrão armazena até 1024 instâncias em memória, otimizando o reuso de conexões
+builder.Services.AddDbContextPool<FluxoCaixaDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
 ///<summary>

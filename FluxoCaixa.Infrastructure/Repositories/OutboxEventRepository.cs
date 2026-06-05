@@ -29,11 +29,13 @@ namespace FluxoCaixa.Infrastructure.Repositories
 
         public async Task<List<OutboxEvent>> ObterPendentesAsync(CancellationToken cancellationToken = default)
         {
-            
             return await _context.OutboxEvents
                 .Where(x => x.Status == StatusEvento.Pendente)
+                .OrderBy(x => x.CreatedAt) // Processa os mais antigos primeiro (FIFO)
+                .Take(100) //  Limita o lote para liberar o pool rapidamente
                 .ToListAsync(cancellationToken);
         }
+
 
         public async Task AtualizarAsync(OutboxEvent evento)
         {
