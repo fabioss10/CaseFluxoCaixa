@@ -1,6 +1,6 @@
 # 🗺️ Visão Estrutural (Diagramas) - Modelo C4
 
-Este documento descreve a arquitetura do sistema utilizando o **Modelo C4**, permitindo visualizar a solução desde o contexto de negócio até a decomposição interna dos componentes do ecossistema.
+Este documento descreve a arquitetura do sistema utilizando o **Modelo C4**, permitindo visualizar a solução desde o contexto de negócio até a decomposição interna e o design do código.
 
 ---
 
@@ -73,4 +73,52 @@ C4Component
     Rel(processador, uow, "Puxa eventos, consome via .Local e executa o CommitAsync em lote")
     
     Rel(uow, banco, "Envia o lote final de comandos SQL unificados", "ADO.NET / TCP")
+```
+
+---
+
+## 💻 Nível 4: Diagrama de Código (Code Diagram)
+Detalha a modelagem de classes, o encapsulamento estrito das invariantes e as propriedades do **Rich Domain Model** (Domínio Rico) desenvolvidas na camada de Core/Domain.
+
+```mermaid
+classDiagram
+    class Lancamento {
+        +Guid Id
+        +TipoLancamento Tipo
+        +decimal Valor
+        +DateTime DataCriacao
+        -Lancamento()
+        +Lancamento(TipoLancamento tipo, decimal valor)
+    }
+
+    class OutboxEvent {
+        +Guid Id
+        +Guid LancamentoId
+        +string EventType
+        +string Payload
+        +StatusEvento Status
+        +DateTime CreatedAt
+        +DateTime? ProcessedAt
+        -OutboxEvent()
+        +OutboxEvent(Guid aggregateId, string payload)
+        +MarcarComoProcessado()
+        +MarcarComoErro()
+    }
+
+    class SaldoConsolidado {
+        +DateOnly Data
+        +decimal TotalCreditos
+        +decimal TotalDebitos
+        +decimal Saldo
+        +DateTime UltimaAtualizacao
+        -SaldoConsolidado()
+        +SaldoConsolidado(DateOnly data)
+        +AplicarLancamento(Lancamento lancamento)
+        +CriarComLancamento(Lancamento lancamento)\$ SaldoConsolidado
+        +CriarSemLancamento(Lancamento lancamento)\$ SaldoConsolidado
+        +CriarSaldoVazio(DateOnly data)\$ SaldoConsolidado
+    }
+
+    SaldoConsolidado ..> Lancamento : Processa
+    OutboxEvent "1" --> "1" Lancamento : Referencia (LancamentoId)
 ```
