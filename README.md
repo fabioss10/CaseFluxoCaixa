@@ -1,50 +1,61 @@
-# Sistema de Controle de Fluxo de Caixa Diário
+#  Sistema de Controle de Fluxo de Caixa Diário
 
 Este projeto consiste em uma solução robusta e resiliente para o controle de fluxo de caixa de comerciantes. Ele possibilita o registro assíncrono de lançamentos (débitos e créditos) e fornece relatórios consolidados de saldo diário com foco em alta performance, resiliência e atomicidade transacional.
 
 ---
 
-## Como Rodar a Aplicação Localmente
+##  Como Rodar a Aplicação Localmente
 
-### 1. Pré-requisitos Técnicos
-Antes de iniciar, certifique-se de ter instalado em seu ambiente:
-* SDK do .NET 10.0 (ou superior)
-* Microsoft SQL Server (instância SQLEXPRESS ativa localmente)
+### 1. Pré-requisitos
+Antes de iniciar, certifique-se de possuir os seguintes componentes instalados em seu ambiente:
+* .NET SDK 10.0 ou superior
+* Microsoft SQL Server (Express, Developer ou LocalDB)
+* Git
 
-### 2. Clonagem do Projeto
-Abra o terminal da sua máquina, escolha uma pasta de trabalho e execute o comando:
+### 2. Clonagem do Repositório
+Abra um terminal, navegue até a pasta onde deseja armazenar o projeto e execute:
 ```bash
-git clone https://github.com/fabioss10
+git clone https://github.com/fabioss10/CaseFluxoCaixa.git
 cd CaseFluxoCaixa
+dotnet restore
 ```
 
 ### 3. Configuração da Base de Dados
-Abra o arquivo `appsettings.json` localizado na raiz do projeto da WebAPI (`FluxoCaixa.Api`) e certifique-se de que a string de conexão está apontando para o seu servidor local conforme a configuração homologada:
+Abra o arquivo `appsettings.json` localizado no projeto `FluxoCaixa.Api` e ajuste a string de conexão conforme o seu ambiente:
 ```json
-"ConnectionStrings": {
-  "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=FluxoCaixaDb;Trusted_Connection=True;TrustServerCertificate=True"
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=FluxoCaixaDb;Trusted_Connection=True;TrustServerCertificate=True"
+  }
 }
 ```
+*Caso utilize outra instância do SQL Server, altere o valor do servidor conforme necessário.*
 
 ### 4. Execução do Script SQL
 O banco de dados utiliza tabelas otimizadas para UUIDv7 e chaves baseadas em datas. Execute o script `banco_completo.sql` (disponível na raiz do repositório) diretamente no seu gerenciador de banco de dados (SQL Server Management Studio ou Azure Data Studio) para provisionar a estrutura física.
 
-### 5. Inicialização do Ecossistema (API + Swagger)
-A aplicação unifica o recebimento da API, a documentação Swagger e o processamento em segundo plano. Para rodar o ecossistema, execute o comando abaixo a partir da pasta raiz:
+### 5. Execução da Aplicação
+A partir da raiz do projeto, execute:
 ```bash
 dotnet run --project src/FluxoCaixa.Api/FluxoCaixa.Api.csproj
 ```
-A documentação interativa das rotas estará acessível automaticamente através do endereço do Swagger configurado no pipeline do .NET 10 em seu navegador.
+A API, a documentação Swagger e os serviços de processamento serão iniciados automaticamente.
 
-### 6. Execução dos Testes Unitários
-Para validar a integridade matemática e comportamental do sistema, execute os testes automáticos via terminal utilizando o comando:
+### 6. Acessando a Documentação da API
+Após a inicialização da aplicação, o Swagger estará disponível no navegador através do endereço informado no console da aplicação, geralmente em:
+`https://localhost:xxxx/swagger`  
+*A porta poderá variar conforme a configuração do ambiente.*
+
+### 7. Execução dos Testes Unitários
+Para validar o comportamento da aplicação e executar todos os testes automatizados, utilize o comando:
 ```bash
 dotnet test
 ```
+Todos os testes deverão ser concluídos com sucesso.
 
 ---
 
-## 🏛️ Explicação do Sistema
+## Explicação do Sistema
 
 A solução foi desenvolvida utilizando C# com o ecossistema do .NET 10, adotando princípios de Clean Architecture e Domain-Driven Design (DDD) para resolver de forma performática e resiliente o fluxo de caixa do comerciante. O funcionamento do sistema baseia-se em três etapas integradas:
 
