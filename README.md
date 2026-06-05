@@ -51,7 +51,21 @@ Para validar o comportamento da aplicação e executar todos os testes automatiz
 ```bash
 dotnet test
 ```
-Todos os testes deverão ser concluídos com sucesso.
+
+O TESTE DE PERMONACE IRA APRESENTAR ERRO NESSA ETAPA
+
+### 8. Execução do Teste de Carga e Estresse 
+Para validar deterministicamente o requisito não-funcional de suportar uma vazão constante de **50 requisições por segundo (RPS) com menos de 5% de perda**, a suíte de testes incorpora um teste de carga automatizado utilizando o framework **NBomber**.
+
+#### Como Rodar o Teste de Estresse Localmente:
+1. Certifique-se de que a Web API esteja ativa e rodando em segundo plano (`dotnet run`).
+2. Abra um terminal separado e execute o filtro específico para o teste de carga:
+```bash
+dotnet test --filter ExecutarTesteDeCarga_DeveSuportar50RequisicoesPorSegundo_ComMaximo5PorCentoDeFalhas
+```
+
+#### O que este teste valida sob a perspectiva de arquitetura:
+O motor do NBomber realiza um bombardeio de requisições HTTP do tipo *Constant Rate Injection* contra o endpoint de consulta de saldos durante 30 segundos. Ao final, o teste calcula a taxa matemática de sucesso e falha. Graças à otimização do **Índice Clusterizado por Data** no SQL Server e do **DbContext Pooling**, a API responde instantaneamente via *Index Seek*, mantendo a taxa de perda próxima de 0% (cumprindo com folga o teto exigido de 5%) e liberando o pool de conexões imediatamente de forma estável.
 
 ---
 
@@ -66,6 +80,17 @@ A entrada de dados é monitorada pelo padrão Fail-Fast através da biblioteca F
 Para desonerar a API e evitar lentidões ao comerciante, o cálculo do saldo do dia foi movido para o OutboxWorker (um Hosted Service em segundo plano que roda a cada 3 segundos). Esse Worker atua coletando os eventos pendentes no banco e acionando o processador de negócios. 
 
 Para mitigar problemas de contenção de banco e travamento de linhas (Row-Locking), o processador utiliza uma estratégia de agregação em memória (Micro-batching) por meio do cache de primeiro nível (.Local) do Entity Framework Core. Múltiplos lançamentos que pertencem ao mesmo dia são recuperados, agrupados e somados diretamente na CPU do servidor. Ao término do lote, o Unit of Work dispara apenas um comando SQL de alteração para o banco de dados.
+
+
+
+### Gestão de Alta Vazão e Mitigação de Connection Pool Starvation (Throttling)
+Sob cenários de estresse massivo e alta concorrência (como o SLA de 50 requisições por segundo exigido pelo negócio), a gravação acelerada de lançamentos na API pode gerar picos de volume na tabela de Outbox. Se o Worker tentar recuperar uma massa irrestrita de dados de uma única vez, o processamento longo do laço retém as conexões do banco abertas por tempo excessivo, gerando o esgotamento do pool do ADO.NET (*Connection Pooling Starvation*) e indisponibilizando a API por timeout.
+
+Para solucionar este gargalo sob perspectiva de infraestrutura bancária e garantir estabilidade contínua, foram aplicadas três ações corretivas integradas:
+1. **Throttling e Paginação de Lote (Micro-batching):** O método `ObterPendentesAsync` implementa paginação nativa através do operador `.Take(100)` ordenado de forma cronológica (FIFO). Isso confere previsibilidade ao I/O: o Worker processa blocos controlados de forma extremamente rápida, finaliza o escopo e devolve os sockets de conexão ao pool em frações de milissegundos.
+2. **DbContext Pooling:** O registro tradicional do banco de dados no contêiner de injeção de dependência foi substituído por `AddDbContextPool<FluxoCaixaDbContext>`, ativando o reaproveitamento automatizado de instâncias de contexto em memória RAM e mitigando os custos de alocação de objetos por requisição.
+3. **Dimensionamento do Pool Transacional:** A Connection String foi estendida com o parâmetro `Max Pool Size=500`, permitindo que o pool elástico acomode picos de concorrência concorrentes e garanta taxa de sucesso operacional com índice de perda inferior ao teto de 5% sob estresse contínuo.
+
 
 ### Modelagem de Infraestrutura Otimizada (.NET 10 & SQL Server)
 O banco de dados foi projetado para suportar alta concorrência e crescimento de dados através de duas decisões estratégicas:

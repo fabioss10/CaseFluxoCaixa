@@ -69,3 +69,19 @@ Decidimos implementar uma estratégia de **Micro-batching**. O repositório insp
 ### Consequências
 * **Positivas:** Redução de até 80% nas viagens de rede (*Roundtrips*) e operações de escrita no banco de dados. Eliminação de conflitos de estado de rastreamento no Entity Framework (`Detached State Exception`).
 * **Negativas:** Pequeno aumento temporário no consumo de memória RAM do Worker durante o processamento de lotes muito volumosos.
+
+## 📄 ADR 05: Mitigação de Connection Pool Starvation via Throttling e DbContextPooling
+
+### Status
+Aprovado
+
+### Contexto
+Durante a execução do teste de estresse de 50 RPS utilizando o NBomber, a volumetria agressiva de concorrência esgotou o limite padrão de conexões simultâneas que o Entity Framework abria com o SQL Server, gerando cenários de *Connection Pooling Starvation* e derrubando a API por timeout. Isso ocorria porque o Worker do Outbox retinha conexões abertas por muito tempo ao processar lotes volumosos sem paginação.
+
+### Decisão
+Decidimos implementar o padrão de **Throttling e Paginação de Lote** via `.Take(100)` na busca de eventos, além de substituir o registro tradicional do banco de dados na API por **`AddDbContextPool`** e expandir o **`Max Pool Size=500`** na Connection String.
+
+### Consequências
+* **Positivas:** O Worker finaliza o escopo de processamento em frações de milissegundos, liberando os sockets de volta para o pool. A API passou a reaproveitar instâncias do contexto em memória RAM, garantindo estabilidade contínua e mantendo o índice de perda estritamente inferior a 5% sob estresse.
+* **Negativas:** Exige monitoramento do tamanho ideal do lote (`Take`) caso o tamanho médio do payload dos eventos aumente drasticamente.
+

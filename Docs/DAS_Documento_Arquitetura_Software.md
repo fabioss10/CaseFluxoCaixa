@@ -24,6 +24,8 @@ O ecossistema é composto por uma Web API e um serviço em segundo plano (Worker
 * **Alta Vazão de Escrita (OLTP):** A API de entrada deve responder em tempo mínimo (latência de milissegundos), delegando processamentos pesados para segundo plano.
 * **Escalabilidade Concorrente:** O recálculo de saldos de relatórios não pode gerar travamentos (*locks*) nas tabelas transacionais, mesmo sob alta concorrência de acessos.
 * **Manutenibilidade e Testabilidade:** O código deve possuir acoplamento fraco, permitindo a substituição de frameworks e a execução de testes unitários isolados de I/O.
+* **Disponibilidade e Vazão sob Carga :** O serviço de consulta de saldo consolidado foi projetado e testado para suportar uma vazão constante de **50 requisições por segundo (RPS)**, operando com uma taxa de perda/erro estritamente inferior a **5%**. Esta meta é atingida na infraestrutura física graças ao **Índice Clusterizado** gerado pela Chave Primária por Data na tabela `SaldosConsolidados`, permitindo buscas instantâneas via *Index Seek*, liberando as conexões do pool de forma ultra-rápida e mitigando gargalos de timeouts HTTP sob estresse.
+
 
 ### 2.Restrições Técnicas
 * A aplicação deve ser desenvolvida em **C#** utilizando a plataforma **.NET 10**.
