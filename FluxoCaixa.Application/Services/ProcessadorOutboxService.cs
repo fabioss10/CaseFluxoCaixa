@@ -91,9 +91,21 @@ namespace FluxoCaixa.Application.Services
             // atuaria como um Relay. Se a fila falhasse, o evento não seria marcado como processado, garantindo 
             // 'At-Least-Once Delivery' sem quebrar ou corromper a consistência do fluxo de caixa.
             //
-            // BENEFÍCIO FINAL: 100 lançamentos são acumulados e somados em memória (CPU-Bound). O banco de dados 
+            
+            // 9. EVOLUÇÃO DE ESCALA MÁXIMA (CDC COM DEBEZIUM) & INVERSÃO DE DEPENDÊNCIA
+            // Para escalar o sistema a níveis globais sem competir por conexões de banco de dados, o Worker 
+            // em C# pode ser substituído por uma ferramenta de Change Data Capture (CDC) como o Debezium (Kafka Connect).
+            // O Debezium lê diretamente os arquivos binários de log do SQL Server (Transaction Log), gerando impacto 
+            // zero de I/O nas tabelas e transmitindo os eventos com latência de milissegundos.
+
+            // 10. DESACOPLAMENTO (DIP): Como o sistema foi rigidamente implementado usando Inversão de Dependência,
+            // o Core do Domínio e a API C# permanecem 100% INTACTOS. A API continua gravando o Outbox de forma atômica
+            // via contratos abstratos, provando que a arquitetura isola regras de negócio de decisões de infraestrutura.
+            //
+            // BENEFÍCIO FINAL: N lançamentos são acumulados e somados em memória (CPU-Bound). O banco de dados 
             // sofre apenas UMA viagem de rede (I/O) no Commit final para atualizar o saldo de todas as transações 
             // daquele dia de uma vez só, garantindo consistência, atomicidade e performance extrema.
+            //
             // =======================================================================================
 
 

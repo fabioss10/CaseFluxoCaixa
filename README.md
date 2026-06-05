@@ -94,6 +94,16 @@ Para solucionar este gargalo sob perspectiva de infraestrutura bancária e garan
 A calibração atual do ecossistema está configurada de forma conservadora para ambiente de desenvolvimento local: com um lote fixo de 100 registros (`.Take(100)`) executado a cada 3 segundos (`Task.Delay(3000)`), o Worker atinge uma vazão controlada de **~33,3 eventos processados por segundo (RPS)**.
 No entanto, a arquitetura foi projetada para suportar **escalabilidade de nível bancário**. Como a lógica de agregação de saldos ocorre inteiramente em memória (CPU-Bound) e as conexões estão otimizadas via DbContext Pooling, para escalar o sistema para suportar mais de **5.000 transações por segundo** em produção, basta reajustar variáveis de ambiente reduzindo o batimento do Worker para 100ms e elevando o tamanho do lote para `.Take(500)`. O sistema escalará linearmente mantendo a carga sobre o SQL Server extremamente baixa, pois ele sofrerá apenas 10 commits consolidados por segundo.
 
+#### Evolução para Alta Escala: Change Data Capture (CDC) com Debezium
+O processamento assíncrono atual via `OutboxWorker` em C# com paginação de `Take(100)` atende perfeitamente ao cenário com excelente controle de recursos locais. No entanto, para escalar o padrão *Transactional Outbox* para volumes massivos de transações (escala bancária global), a arquitetura está preparada para evoluir substituindo o Worker por uma ferramenta de **Change Data Capture (CDC), como o Debezium rodando sobre o Apache Kafka Connect**.
+
+Em vez de executar consultas periódicas de `SELECT` (*Polling*) que competem por CPU e conexões de rede com a API transacional, o Debezium escuta e captura as inserções da tabela `OutboxEvents` diretamente nos arquivos binários de log do SQL Server (*Transaction Log*) em disco. Isso reduz o impacto de I/O na tabela para zero e despacha os eventos para os tópicos do Kafka com latência de milissegundos.
+
+#### O grande diferencial competitivo desta solução
+O grande diferencial competitivo desta solução é que **essa mudança drástica de infraestrutura exige zero alterações no Core do Domínio ou na API C#**. Como o sistema foi rigidamente implementado aplicando o princípio de Inversão de Dependência do SOLID, a camada de negócio se comunica com os dados exclusivamente através de contratos abstratos (`IUnitOfWorkRepository`). 
+
+A API continuará apenas persistindo o lançamento e o evento de forma atômica no banco de dados local. O acoplamento é nulo, provando na prática o poder de uma **Arquitetura Evolutiva** capaz de alterar suas engines de mensageria e retransmissão de eventos sem jamais violar ou reescrever as regras de negócio do fluxo de caixa.
+
 
 ### Modelagem de Infraestrutura Otimizada (.NET 10 & SQL Server)
 O banco de dados foi projetado para suportar alta concorrência e crescimento de dados através de duas decisões estratégicas:
@@ -116,6 +126,7 @@ O sistema foi desenhado sob os preceitos de uma **Arquitetura Evolutiva**. Embor
 * **Tabelas Otimizadas para Memória (In-Memory OLTP):** A tabela de `SaldosConsolidados`, por ser o ponto central de maior modificação do sistema, pode ser convertida para uma tabela *In-Memory* com durabilidade total (`SCHEMA_AND_DATA`). Isso elimina o gargalo de travas de página em disco, permitindo que o cálculo de saldo atinja latências na casa dos microssegundos.
 * **Estratégia de Pruning e Cold Storage para o Outbox:** Como os registros da tabela `OutboxEvents` perdem o valor transacional logo após serem processados com sucesso, deve-se implementar uma rotina agendada (Job/Cron) para expurgo (*Pruning*). Eventos com status `Processado` há mais de 3 dias são automaticamente deletados ou movidos em lote para uma base de histórico (*Cold Storage* ou *Data Lake*), mantendo a tabela principal e o seu índice filtrado sempre extremamente leves e residentes na memória RAM.
 * **Particionamento de Tabelas por Data:** Conforme o histórico de lançamentos acumula dezenas de milhões de linhas ao longo dos anos, a tabela `Lancamentos` pode aplicar o particionamento físico em disco com base na coluna `DataCriacao` (ex: uma partição física por mês ou por ano). Isso otimiza rotinas de manutenção, acelera relatórios de BI e garante que queries históricas não impactem a performance das escritas do dia atual.
+
 
 
 
