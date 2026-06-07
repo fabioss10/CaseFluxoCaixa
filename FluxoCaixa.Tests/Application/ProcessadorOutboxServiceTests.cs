@@ -15,14 +15,17 @@ namespace FluxoCaixa.Tests.Application
 {
     /// <summary>
     /// Suite de testes focada no componente ProcessadorOutboxService.
-    ///  Isola o processador das dependências físicas de I/O de banco de dados 
+    /// Isola o processador das dependências físicas de I/O de banco de dados 
     /// utilizando Mocking via biblioteca Moq, permitindo a validação deterministicamente pura 
     /// das invariantes de negócio, resiliência do laço e atomicidade em cenários de processamento em lote (Batch).
     /// </summary>
     public class ProcessadorOutboxServiceTests
     {
         private readonly Mock<IUnitOfWorkRepository> _uowMock;
-        private readonly ProcessadorOutboxService _sut; // SUT = System Under Test (Sistema Sob Teste)
+        private readonly ProcessadorOutboxService _sut;
+
+
+
 
         public ProcessadorOutboxServiceTests()
         {
@@ -41,29 +44,40 @@ namespace FluxoCaixa.Tests.Application
             // -----------------------------------------------------------------------------------
             // ARRANGE: Configuração do cenário, dados de entrada e comportamento dos dublês (Mocks)
             // -----------------------------------------------------------------------------------
-            var dataHoje = DateOnly.FromDateTime(DateTime.UtcNow);
+            decimal saldoVindoDoDiaAnterior = 50m; // Adicionado histórico para validar a nova regra de domínio
 
             // Criação das invariantes de domínio enriquecidas
             var lancamento1 = new Lancamento(TipoLancamento.Credito, 100m);
             var lancamento2 = new Lancamento(TipoLancamento.Debito, 30m);
 
+            // O payload do Outbox transporta as propriedades públicas mapeadas no DTO/Entidade
             var evento1 = new OutboxEvent(lancamento1.Id, JsonSerializer.Serialize(lancamento1));
             var evento2 = new OutboxEvent(lancamento2.Id, JsonSerializer.Serialize(lancamento2));
             var listaEventos = new List<OutboxEvent> { evento1, evento2 };
 
-            // Treina o Mock do Outbox para simular a fila de eventos pendentes vindos do banco
             _uowMock.Setup(x => x.OutboxEvents.ObterPendentesAsync(It.IsAny<CancellationToken>()))
                     .ReturnsAsync(listaEventos);
 
-            // Simulação de comportamento de infraestrutura real (Cache de primeiro nível / .Local):
-            // Na primeira iteração do laço, o saldo não existe (retorna null). O Callback captura
-            // a primeira inserção e atualiza a referência local simulando o comportamento do DbContext em memória.
-            SaldoConsolidado saldoExistente = null;
-            _uowMock.Setup(x => x.SaldosConsolidados.ObterPorDataAsync(dataHoje, It.IsAny<CancellationToken>()))
-                    .ReturnsAsync(() => saldoExistente);
+            // aceitar 'It.IsAny<DateOnly>()' para capturar
+            // dinamicamente tanto a busca do saldo de 'Hoje' quanto a busca retroativa do saldo de 'Ontem'.
+            SaldoConsolidado saldoExistenteInMemoria = null;
+
+            _uowMock.Setup(x => x.SaldosConsolidados.ObterPorDataAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((DateOnly dataSolicitada, CancellationToken ct) =>
+                    {
+                        // Se a Service estiver pedindo o dia de Ontem, devolvemos um saldo fake com o valor histórico (50)
+                        var dataHoje = DateOnly.FromDateTime(DateTime.UtcNow);
+                        if (dataSolicitada == dataHoje.AddDays(-1))
+                        {
+                            return SaldoConsolidado.CriarSaldoVazio(dataSolicitada, saldoVindoDoDiaAnterior);
+                        }
+
+                        // Se for a data de Hoje, simula o comportamento do ChangeTracker (.Local)
+                        return saldoExistenteInMemoria;
+                    });
 
             _uowMock.Setup(x => x.SaldosConsolidados.AdicionarAsync(It.IsAny<SaldoConsolidado>()))
-                    .Callback<SaldoConsolidado>(s => saldoExistente = s)
+                    .Callback<SaldoConsolidado>(s => saldoExistenteInMemoria = s)
                     .Returns(Task.CompletedTask);
 
             // -----------------------------------------------------------------------------------
@@ -74,23 +88,21 @@ namespace FluxoCaixa.Tests.Application
             // -----------------------------------------------------------------------------------
             // ASSERT: Conferência dos resultados e validação das expectativas de negócio
             // -----------------------------------------------------------------------------------
-            Assert.NotNull(saldoExistente);
-            Assert.Equal(70m, saldoExistente.Saldo); // Invariante matemática: 100 Crédito - 30 Débito = 70 Saldo líquido
-            Assert.Equal(100m, saldoExistente.TotalCreditos);
-            Assert.Equal(30m, saldoExistente.TotalDebitos);
+            Assert.NotNull(saldoExistenteInMemoria);
 
-            // Validação de transição de estados internos das entidades de domínio
+            //  MATEMÁTICA ATUALIZADA: 50 (Ontem) + 100 (Crédito) - 30 (Débito) = 120m
+            Assert.Equal(120m, saldoExistenteInMemoria.Saldo);
+            Assert.Equal(100m, saldoExistenteInMemoria.TotalCreditos);
+            Assert.Equal(30m, saldoExistenteInMemoria.TotalDebitos);
+
             Assert.Equal(StatusEvento.Processado, evento1.Status);
             Assert.Equal(StatusEvento.Processado, evento2.Status);
 
-            // Prova que o sistema agrupou a escrita física e executou apenas uma chamada de I/O
             _uowMock.Verify(x => x.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
 
         /// <summary>
         /// OBJETIVO: Validar a política de tolerância a falhas e isolamento de erros (Graceful Degradation).
-        /// <para>PREMISSA TÉCNICA: O laço de repetição deve ser protegido por escopos isolados de try-catch.</para>
-        /// <para>CRITÉRIO DE SUCESSO: Um payload corrompido com erro de parse/deserialização deve ser marcado individualmente com status 'Erro' sem interromper ou ejetar o processamento dos demais eventos legítimos do lote.</para>
         /// </summary>
         [Fact]
         public async Task ProcessarAsync_DeveIsolarErroDeDeserializacao_MarcarEventoComoErro_E_ContinuarOLaco()
@@ -119,13 +131,9 @@ namespace FluxoCaixa.Tests.Application
             // -----------------------------------------------------------------------------------
             // ASSERT: Avaliação de integridade e não-interrupção do pipeline assíncrono
             // -----------------------------------------------------------------------------------
-            // O primeiro evento deve sofrer degradação limpa mudando para o status de falha
             Assert.Equal(StatusEvento.Erro, eventoCorrompido.Status);
-
-            // O segundo evento prova a resiliência: o loop continuou ativo e processou o registro subsequente
             Assert.Equal(StatusEvento.Processado, eventoValido.Status);
 
-            // Confirma que as operações válidas mantiveram a atomicidade final da escrita do lote
             _uowMock.Verify(x => x.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
         }
     }
