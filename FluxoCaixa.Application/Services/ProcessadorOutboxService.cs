@@ -125,11 +125,31 @@ namespace FluxoCaixa.Application.Services
 
                     var data = lancamento.DataCriacao.Date;
 
+                    // =======================================================================================
+                    // EVOLUÇÃO FUTURA DE ALTA ESCALA: CACHE-ASIDE (REDIS) PARA LEITURA CONCORRENTE
+                    // ---------------------------------------------------------------------------------------
+                    // Cenário Atual: O repositório mitiga buscas repetidas no mesmo lote inspecionando a memória 
+                    // local (.Local). Contudo, a cada nova execução do Worker (novos lotes independentes), a primeira 
+                    // leitura da data fatalmente gerará um I/O de Read no SQL Server para checar a existência do dia.
+                    //
+                    // Solução de Escala Global: Centralizar o estado do saldo do dia atual no Redis. O Worker lerá 
+                    // o saldo corrente da memória RAM compartilhada. Se a chave existir (Cache Hit), o processador 
+                    // evita o 'Select' no banco relacional, atualiza a entidade e faz o 'Write-Through' (atualiza o 
+                    // Redis e agenda o commit final no SQL). O banco de dados passa a ser uma camada de persistência 
+                    // estritamente de escrita (Write-Heavy Append-Only), maximizando o throughput da API.
+                    // =======================================================================================
+
                     var saldo = await _uow.SaldosConsolidados.ObterPorDataAsync(DateOnly.FromDateTime(data), cancellationToken);
 
                     if (saldo == null)
                     {
-                        saldo = SaldoConsolidado.CriarComLancamento(lancamento);
+                        var dataOntem = data.AddDays(-1);
+
+                        //Aqui tambem cade o uso do redis para evitar a viagem de rede ao banco de dados, buscando o saldo do dia anterior em memória
+                        var saldoOntem = await _uow.SaldosConsolidados.ObterPorDataAsync(DateOnly.FromDateTime(dataOntem));
+                        decimal valorSaldoAnterior = saldoOntem?.Saldo ?? 0;
+
+                        saldo = SaldoConsolidado.CriarComLancamento(lancamento, valorSaldoAnterior);
                         await _uow.SaldosConsolidados.AdicionarAsync(saldo);
                     }
                     else

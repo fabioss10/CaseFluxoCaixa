@@ -19,12 +19,12 @@ public class SaldoConsolidado
     {
     }
 
-    public SaldoConsolidado(DateOnly data)
+    public SaldoConsolidado(DateOnly data, decimal saldoDiaAnterior = 0)
     {
         Data = data;
         TotalCreditos = 0;
         TotalDebitos = 0;
-        Saldo = 0;
+        Saldo = saldoDiaAnterior;
         UltimaAtualizacao = DateTime.UtcNow;
     }
 
@@ -53,11 +53,12 @@ public class SaldoConsolidado
     }
 
     public static SaldoConsolidado CriarComLancamento(
-    Lancamento lancamento)
+        Lancamento lancamento,
+        decimal saldoDiaAnterior)
     {
         var saldo = new SaldoConsolidado(
-            DateOnly.FromDateTime(
-                lancamento.DataCriacao));
+            DateOnly.FromDateTime(lancamento.DataCriacao),
+            saldoDiaAnterior);
 
         saldo.AplicarLancamento(lancamento);
 
@@ -65,11 +66,12 @@ public class SaldoConsolidado
     }
 
     public static SaldoConsolidado CriarSemLancamento(
-    Lancamento lancamento)
+        Lancamento lancamento,
+        decimal saldoDiaAnterior)
     {
         var saldo = new SaldoConsolidado(
-            DateOnly.FromDateTime(
-                lancamento.DataCriacao));
+            DateOnly.FromDateTime(lancamento.DataCriacao),
+            saldoDiaAnterior);
 
         saldo.AplicarLancamento(lancamento);
 
@@ -77,9 +79,10 @@ public class SaldoConsolidado
     }
 
     public static SaldoConsolidado CriarSaldoVazio(
-    DateOnly data)
+        DateOnly data,
+        decimal saldoDiaAnterior)
     {
-       return  new SaldoConsolidado(data);
+        return new SaldoConsolidado(data, saldoDiaAnterior);
     }
 
 }

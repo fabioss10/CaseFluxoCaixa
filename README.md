@@ -135,6 +135,33 @@ Para garantir a proteção de dados financeiros e a auditoria estrita exigida pe
 * **Autorização Granular (RBAC/CBAC):** O acesso aos endpoints será restrito com base em papéis (*Roles*) ou permissões (*Claims*). Por exemplo, um endpoint de criação receberá a restrição `[Authorize(Policy = "GravarLancamentos")]`, enquanto a leitura do saldo consolidado exigirá `[Authorize(Policy = "LerSaldos")]`.
 * **Auditoria Integrada ao Domínio:** O ID do usuário autenticado será extraído automaticamente do token JWT pelo pipeline do ASP.NET Core (`ClaimsPrincipal`) e injetado nos contextos do repositório. Isso permitirá registrar nativamente na tabela de `Lancamentos` e no payload do `OutboxEvent` o autor exato de cada movimentação financeira, garantindo rastreabilidade total para fins de conformidade e *Compliance* fiscal.
 
+## 🚀 Evolução Arquitetural Futura: Alta Escala e Performance
+
+A arquitetura atual do **Processador de Outbox** e do **Cálculo de Saldo Diário** foi projetada focando em consistência atômica, isolamento de domínio (DDD) e mitigação de I/O via micro-batching e cache de primeiro nível (`.Local` do EF Core). 
+
+Contudo, para suportar cenários de escala global de Big Tech (milhares de transações por segundo / RPS) e mitigar a contenção no banco de dados relacional, o sistema foi desenhado para evoluir linearmente através das seguintes estratégias:
+
+### 1. Camada de Cache Distribuído (Padrão Cache-Aside com Redis)
+Atualmente, o processador consulta o banco de dados SQL Server para checar a existência do saldo do dia atual e para buscar o saldo acumulado do dia anterior quando um novo dia é inicializado. 
+* **O Gargalo:** Sob alta concorrência em lote com datas retroativas mistas, isso pode gerar um comportamento de *I/O Chatty* (excesso de requisições de leitura na rede do banco).
+* **A Solução:** Centralizar o estado dos saldos na memória RAM compartilhada do **Redis**. O Worker passará a ler e atualizar os saldos vigentes com latência sub-milissegundo (<1ms). O SQL Server será acionado para leitura apenas em cenários raros de *Cache Miss*, atuando estritamente como uma camada de persistência histórica (*Append-Only*).
+
+```mermaid
+graph TD
+    A[Evento do Outbox] --> B{Tem no .Local do C#?}
+    B -- Sim (0ms) --> C[Atualiza na CPU]
+    B -- Não --> D{Tem no Redis?}
+    D -- Sim (<1ms) --> C
+    D -- Não (Cache Miss) --> E[Busca no SQL Server]
+    E --> C
+```
+
+### 2. Inversão de I/O via Event Sourcing ou CDC (Change Data Capture)
+Para desonerar completamente o pool de conexões do banco de dados relacional durante a leitura de eventos:
+* **Evolução:** Substituir o Worker C# que varre a tabela de Outbox por uma ferramenta de infraestrutura dedicada como o **Debezium + Kafka Connect**. 
+* **Benefício:** O Debezium lê diretamente os arquivos binários de log do banco de dados (Transaction Log / WAL) em nível de disco, com impacto zero de queries nas tabelas. Os eventos são transmitidos para tópicos do Kafka em tempo real, onde microservices de relatórios podem consumir e consolidar saldos de forma totalmente assíncrona, desacoplada e com escalabilidade linear infinita.
+
+
 
 
 
