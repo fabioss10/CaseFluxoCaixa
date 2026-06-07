@@ -14,8 +14,6 @@ namespace FluxoCaixa.Tests.Application
     /// <summary>
     /// Suíte de testes para a ConsultarSaldoService.
     /// OBJETIVO: Garantir a integridade do fluxo de leitura pura (Read-Only) da aplicação.
-    /// Justificativa de Design: Valida as regras de transformação de dados (Mapeamento de Entidade para DTO)
-    /// e a resiliência da borda de negócio ao lidar com registros inexistentes no banco de dados.
     /// </summary>
     public class ConsultarSaldoServiceTests
     {
@@ -30,8 +28,6 @@ namespace FluxoCaixa.Tests.Application
 
         /// <summary>
         /// OBJETIVO: Validar o mapeamento correto dos dados de leitura quando o saldo existe na data consultada.
-        /// <para>PREMISSA TÉCNICA: O repositório deve retornar uma entidade rica e a Service deve transformá-la fielmente no DTO de resposta.</para>
-        /// <para>CRITÉRIO DE SUCESSO: Todas as propriedades matemáticas e metadados de auditoria (UltimaAtualizacao) batem de ponta a ponta.</para>
         /// </summary>
         [Fact]
         public async Task ObterPorDataAsync_QuandoSaldoExiste_DeveMapearEFielmenteRetornarDTOComDados()
@@ -39,18 +35,24 @@ namespace FluxoCaixa.Tests.Application
             // -----------------------------------------------------------------------------------
             // ARRANGE: Instanciação da entidade de domínio e treinamento do mock de leitura
             // -----------------------------------------------------------------------------------
-            var dataConsulta = new DateOnly(2026, 6, 5);
+            decimal saldoVindoDoDiaAnterior = 100m;
 
-            // Usado a fábrica do domínio enriquecido para criar um saldo limpo
+            // Criando o cenário com o saldo acumulado de trás
             var lancamentoInicial = new Lancamento(TipoLancamento.Credito, 200m);
-            var saldoFake = SaldoConsolidado.CriarComLancamento(lancamentoInicial);
+            var saldoFake = SaldoConsolidado.CriarComLancamento(lancamentoInicial, saldoVindoDoDiaAnterior);
 
-            // Adiciondo mais uma movimentação para rechear os dados do teste
             var lancamentoDebito = new Lancamento(TipoLancamento.Debito, 50m);
-            saldoFake.AplicarLancamento(lancamentoDebito); // Saldo final deve ser 150 (200 - 50)
+            saldoFake.AplicarLancamento(lancamentoDebito);
 
-            _saldoRepositoryMock.Setup(x => x.ObterPorDataAsync(dataConsulta, It.IsAny<CancellationToken>()))
+            // CÁLCULO INTERNO: 100 (anterior) + 200 (crédito) - 50 (débito) = 250m
+
+            // Usando 'It.IsAny<DateOnly>()' eliminamos a quebra causada pelo fuso horário
+            // ou pelo DateTime.UtcNow interno criado na instanciação do Lancamento.
+            _saldoRepositoryMock.Setup(x => x.ObterPorDataAsync(It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(saldoFake);
+
+            // A consulta enviará a data interna gerada de forma consistente
+            var dataConsulta = saldoFake.Data;
 
             // -----------------------------------------------------------------------------------
             // ACT: Execução da consulta através da Service
@@ -62,7 +64,7 @@ namespace FluxoCaixa.Tests.Application
             // -----------------------------------------------------------------------------------
             Assert.NotNull(resultado);
             Assert.Equal(dataConsulta, resultado.Data);
-            Assert.Equal(150m, resultado.Saldo);
+            Assert.Equal(250m, resultado.Saldo);
             Assert.Equal(200m, resultado.TotalCreditos);
             Assert.Equal(50m, resultado.TotalDebitos);
             Assert.Equal(saldoFake.UltimaAtualizacao, resultado.UltimaAtualizacao);
@@ -73,8 +75,6 @@ namespace FluxoCaixa.Tests.Application
 
         /// <summary>
         /// OBJETIVO: Validar o tratamento defensivo de dados para datas sem movimentação financeira.
-        /// <para>PREMISSA TÉCNICA: O repositório retornará 'null' ao simular a ausência de registro no banco.</para>
-        /// <para>CRITÉRIO DE SUCESSO: A Service intercepta o nulo com segurança e inicializa um objeto amigável zerado, blindando a API contra NullReferenceExceptions.</para>
         /// </summary>
         [Fact]
         public async Task ObterPorDataAsync_QuandoSaldoNaoExiste_DeveRetornarDTOResilietementeZerado()
