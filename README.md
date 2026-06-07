@@ -46,7 +46,7 @@ Após a inicialização da aplicação, o Swagger estará disponível no navegad
 `https://localhost:xxxx/swagger`  
 *A porta poderá variar conforme a configuração do ambiente.*
 
-7. Execução dos Testes Unitários
+###7. Execução dos Testes Unitários
 Para validar o comportamento lógico da aplicação e executar todos os testes automatizados de unidade de forma limpa, utilize o comando abaixo:
 
 ```bash
