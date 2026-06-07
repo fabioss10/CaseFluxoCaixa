@@ -94,10 +94,6 @@ Para solucionar este gargalo sob perspectiva de infraestrutura bancária e garan
 A calibração atual do ecossistema está configurada de forma conservadora para ambiente de desenvolvimento local: com um lote fixo de 100 registros (`.Take(100)`) executado a cada 3 segundos (`Task.Delay(3000)`), o Worker atinge uma vazão controlada de **~33,3 eventos processados por segundo (RPS)**.
 No entanto, a arquitetura foi projetada para suportar **escalabilidade de nível bancário**. Como a lógica de agregação de saldos ocorre inteiramente em memória (CPU-Bound) e as conexões estão otimizadas via DbContext Pooling, para escalar o sistema para suportar mais de **5.000 transações por segundo** em produção, basta reajustar variáveis de ambiente reduzindo o batimento do Worker para 100ms e elevando o tamanho do lote para `.Take(500)`. O sistema escalará linearmente mantendo a carga sobre o SQL Server extremamente baixa, pois ele sofrerá apenas 10 commits consolidados por segundo.
 
-#### Evolução para Alta Escala: Change Data Capture (CDC) com Debezium
-O processamento assíncrono atual via `OutboxWorker` em C# com paginação de `Take(100)` atende perfeitamente ao cenário com excelente controle de recursos locais. No entanto, para escalar o padrão *Transactional Outbox* para volumes massivos de transações (escala bancária global), a arquitetura está preparada para evoluir substituindo o Worker por uma ferramenta de **Change Data Capture (CDC), como o Debezium rodando sobre o Apache Kafka Connect**.
-
-Em vez de executar consultas periódicas de `SELECT` (*Polling*) que competem por CPU e conexões de rede com a API transacional, o Debezium escuta e captura as inserções da tabela `OutboxEvents` diretamente nos arquivos binários de log do SQL Server (*Transaction Log*) em disco. Isso reduz o impacto de I/O na tabela para zero e despacha os eventos para os tópicos do Kafka com latência de milissegundos.
 
 #### O grande diferencial competitivo desta solução
 O grande diferencial competitivo desta solução é que **essa mudança drástica de infraestrutura exige zero alterações no Core do Domínio ou na API C#**. Como o sistema foi rigidamente implementado aplicando o princípio de Inversão de Dependência do SOLID, a camada de negócio se comunica com os dados exclusivamente através de contratos abstratos 
@@ -135,7 +131,7 @@ Para garantir a proteção de dados financeiros e a auditoria estrita exigida pe
 * **Autorização Granular (RBAC/CBAC):** O acesso aos endpoints será restrito com base em papéis (*Roles*) ou permissões (*Claims*). Por exemplo, um endpoint de criação receberá a restrição `[Authorize(Policy = "GravarLancamentos")]`, enquanto a leitura do saldo consolidado exigirá `[Authorize(Policy = "LerSaldos")]`.
 * **Auditoria Integrada ao Domínio:** O ID do usuário autenticado será extraído automaticamente do token JWT pelo pipeline do ASP.NET Core (`ClaimsPrincipal`) e injetado nos contextos do repositório. Isso permitirá registrar nativamente na tabela de `Lancamentos` e no payload do `OutboxEvent` o autor exato de cada movimentação financeira, garantindo rastreabilidade total para fins de conformidade e *Compliance* fiscal.
 
-## 🚀 Evolução Arquitetural Futura: Alta Escala e Performance
+## Evolução Arquitetural Futura: Alta Escala e Performance
 
 A arquitetura atual do **Processador de Outbox** e do **Cálculo de Saldo Diário** foi projetada focando em consistência atômica, isolamento de domínio (DDD) e mitigação de I/O via micro-batching e cache de primeiro nível (`.Local` do EF Core). 
 
