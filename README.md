@@ -54,7 +54,7 @@ dotnet test --filter Category!=Performance
 ```
 *Nota: Usamos o filtro para ignorar temporariamente o teste de carga, garantindo que a validação unitária e as regras de negócio rodem de forma ultrarápida e com 100% de sucesso (cor verde).*
 
-8. Execução do Teste de Carga e Estresse
+### 8. Execução do Teste de Carga e Estresse
 Para validar deterministicamente o requisito não-funcional de suportar uma vazão constante de 50 requisições por segundo (RPS) com menos de 5% de perda, a suíte de testes incorpora um teste de carga automatizado utilizando o framework NBomber.
 
 Como Rodar o Teste de Estresse Localmente:
