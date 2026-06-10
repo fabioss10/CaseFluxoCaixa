@@ -4,71 +4,86 @@ Este projeto consiste em uma solução robusta e resiliente para o controle de f
 
 ---
 
-##  Como Rodar a Aplicação Localmente
+#  Como Rodar a Aplicação via Docker Compose
+
+Para garantir total portabilidade, mitigar conflitos de ambiente e facilitar o processo de auditoria, a solução está totalmente contêinerizada. Não é necessário possuir SDK do .NET, ferramentas do SQL Server ou gerenciadores de banco instalados localmente. O ecossistema baixa, compila, provisiona o banco e aplica as tabelas automaticamente.
 
 ### 1. Pré-requisitos
-Antes de iniciar, certifique-se de possuir os seguintes componentes instalados em seu ambiente:
-* .NET SDK 10.0 ou superior
-* Microsoft SQL Server (Express, Developer ou LocalDB)
-* Git
+Antes de iniciar, certifique-se de possuir apenas estes dois componentes ativos na máquina:
+* **Git** (Para clonagem do código-fonte)
+* **Docker** & **Docker Compose** (Inclusos nativamente no *Docker Desktop*)
 
-### 2. Clonagem do Repositório
-Abra um terminal, navegue até a pasta onde deseja armazenar o projeto e execute:
+---
+
+### 2. Clonagem do Repositório e Preparação
+Abra o terminal do seu sistema operacional, navegue até a pasta onde deseja armazenar o projeto e execute a sequência de comandos abaixo:
+
 ```bash
 git clone https://github.com/fabioss10/CaseFluxoCaixa.git
+# 2. Entra na pasta raiz da solução (onde localiza-se o arquivo .sln e o docker-compose.yml)
 cd CaseFluxoCaixa
-dotnet restore
 ```
 
-### 3. Configuração da Base de Dados
-Abra o arquivo `appsettings.json` localizado no projeto `FluxoCaixa.Api` e ajuste a string de conexão conforme o seu ambiente:
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=FluxoCaixaDb;Trusted_Connection=True;TrustServerCertificate=True;Max Pool Size=500;Connection Timeout=30;MultipleActiveResultSets=true"
-  }
-}
-```
-*Caso utilize outra instância do SQL Server, altere o valor do servidor conforme necessário.*
+---
 
-### 4. Execução do Script SQL
-O banco de dados utiliza tabelas otimizadas para UUIDv7 e chaves baseadas em datas. Execute o script `banco_completo.sql` (disponível na raiz do repositório) diretamente no seu gerenciador de banco de dados (SQL Server Management Studio ou Azure Data Studio) para provisionar a estrutura física.
+### 3. Execução do Ecossistema (Duas Alternativas)
 
-### 5. Execução da Aplicação
-A partir da raiz do projeto, execute:
+Escolha o cenário de inicialização desejado através das flags de perfis do Docker Compose:
+
+#### Cenário A: Execução Completa (Recomendado para Avaliação)
+Inicializa a Web API junto com o Worker de segundo plano (*Transactional Outbox*) e o painel gráfico oficial de métricas da Microsoft.
 ```bash
-dotnet run --project src/FluxoCaixa.Api/FluxoCaixa.Api.csproj
+docker-compose --profile processamento --profile metricas up --build
 ```
-A API, a documentação Swagger e os serviços de processamento serão iniciados automaticamente.
 
-### 6. Acessando a Documentação da API
-Após a inicialização da aplicação, o Swagger estará disponível no navegador através do endereço informado no console da aplicação, geralmente em:
-`https://localhost:xxxx/swagger`  
-*A porta poderá variar conforme a configuração do ambiente.*
+#### Cenário B: Execução Simplificada (Apenas Banco e API)
+Caso o hardware da máquina seja limitado e você queira apenas testar as rotas HTTP de forma ágil, poupando CPU e memória RAM:
+```bash
+docker-compose up --build
+```
 
-### 7. Execução dos Testes Unitários
-Para validar o comportamento lógico da aplicação e executar todos os testes automatizados de unidade de forma limpa, utilize o comando abaixo:
+---
+
+### 4. Portas de Acesso e Links Úteis
+
+A arquitetura implementa isolamento perimetral de rede, segregando o tráfego de negócios do tráfego de infraestrutura por portas físicas distintas:
+
+* **Portal de Negócios e Testes (Porta 7248):**
+  * Swagger UI: [http://localhost:7248/swagger/index.html](http://localhost:7248/swagger/index.html)
+  * Rota de Autenticação: `POST http://localhost:7248/api/Auth/login-gerente`
+* **Portal de Infraestrutura e Resiliência (Porta 8081):**
+  * Health Check Detalhado (JSON): [http://localhost:8081/healthz/detail](http://localhost:8081/healthz/detail)
+  * Health Check Leve (Máquinas): [http://localhost:8081/healthz](http://localhost:8081/healthz)
+* **Portal de Telemetria Gráfica (Porta 18888 - Apenas no Cenário A):**
+  * .NET Aspire Dashboard: [http://localhost:18888](http://localhost:18888) *(Acesse a aba **Metrics** para monitorar latência, CPU e requisições por segundo).*
+
+---
+
+### 5. Execução dos Testes Automatizados
+
+O projeto separa estritamente os testes rápidos de regressão dos testes pesados de carga do NBomber através do atributo `[Trait]`.
+
+#### 1. Executar Apenas Testes Unitários e de Integração
+Valida regras de negócio em poucos segundos sem causar estresse na infraestrutura física:
+```bash
+dotnet test --filter "Category!=Performance"
+```
+
+#### 2. Executar Teste de Carga e Performance (NBomber)
+Dispara um bombardeio controlado de 50 requisições por segundo (RPS) durante 30 segundos contra a API contêinerizada.
 
 ```bash
-dotnet test --filter Category!=Performance
+dotnet test --filter "Category=Performance"
 ```
-*Nota: Usamos o filtro para ignorar temporariamente o teste de carga, garantindo que a validação unitária e as regras de negócio rodem de forma ultrarápida e com 100% de sucesso (cor verde).*
+> **Nota de Avaliação:** Certifique-se de que o ecossistema completo do Docker (Cenário A) está ativo em outro terminal antes de disparar. Recomenda-se assistir ao comportamento das curvas de latência abrindo o painel do Aspire Dashboard em tempo real.
 
-8. Execução do Teste de Carga e Estresse
-Para validar deterministicamente o requisito não-funcional de suportar uma vazão constante de 50 requisições por segundo (RPS) com menos de 5% de perda, a suíte de testes incorpora um teste de carga automatizado utilizando o framework NBomber.
+---
 
-Como Rodar o Teste de Estresse Localmente:
-1. Certifique-se de que a Web API esteja ativa e rodando localmente (via `dotnet run` na pasta do projeto Web).
-2. Abra um terminal separado na pasta do seu projeto de testes (`FluxoCaixa.Tests`).
-3. Execute o filtro específico para disparar o motor de carga:
-
+### Encerrar a Execução
+Para parar as aplicações, liberar a memória RAM e limpar os recursos criados de forma segura, utilize o comando:
 ```bash
-dotnet test --filter ExecutarTesteDeCarga_DeveSuportar50RequisicoesPorSegundo_ComMaximo5PorCentoDeFalhas
+docker-compose down
 ```
-
-O que este teste valida sob a perspectiva de arquitetura:
-O motor do NBomber realiza um bombardeio de requisições HTTP do tipo Constant Rate Injection contra o endpoint de consulta de saldos durante 30 segundos. Ao final, o teste calcula a taxa matemática de sucesso e falha. Graças à otimização do Índice Clusterizado por Data no SQL Server e do DbContext Pooling, a API responde instantaneamente via Index Seek, mantendo a taxa de perda próxima de 0% (cumprindo com folga o teto exigido de 5%) e liberando o pool de conexões imediatamente de forma estável.---
-
 ## Explicação do Sistema
 
 A solução foi desenvolvida utilizando C# com o ecossistema do .NET 10, adotando princípios de Clean Architecture e Domain-Driven Design (DDD) para resolver de forma performática e resiliente o fluxo de caixa do comerciante. O funcionamento do sistema baseia-se em três etapas integradas:
