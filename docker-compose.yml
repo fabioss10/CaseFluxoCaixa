@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  #1. BANCO DE DADOS (Sempre sobe por padrão)
+  fluxocaixa-db:
+    image: ://microsoft.com
+    container_name: fluxocaixa-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=K9#mQ!2xZ$vL7*pB
+    ports:
+      - "1433:1433"
+    volumes:
+      - ./banco_completo.sql:/docker-entrypoint-initdb.d/banco_completo.sql
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-C", "-S", "localhost", "-U", "sa", "-P", "K9#mQ!2xZ$vL7*pB", "-Q", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  #2. APLICAÇÃO API (Sempre sobe por padrão)
+  fluxocaixa-api:
+    image: fluxocaixa-api:latest
+    container_name: fluxocaixa-api
+    build:
+      context: .
+      dockerfile: src/FluxoCaixa.Api/Dockerfile
+    ports:
+      - "7248:7248"
+      - "8081:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=fluxocaixa-db;Database=FluxoCaixaDb;User Id=sa;Password=K9#mQ!2xZ$vL7*pB;Encrypt=True;TrustServerCertificate=True;Max Pool Size=500;Connection Timeout=30;MultipleActiveResultSets=true
+      - Jwt__SecretKey=SuaChaveSuperSecretaComPeloMenos32Caracteres!
+      - Jwt__Issuer=FluxoCaixaIdentityServer
+      - Jwt__Audience=FluxoCaixaApi
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+    depends_on:
+      fluxocaixa-db:
+        condition: service_healthy
+
+  # PROCESSAMENTO WORKER 
+  fluxocaixa-worker:
+    image: fluxocaixa-worker:latest
+    container_name: fluxocaixa-worker
+    profiles:
+      - processamento  # Atribui este contêiner a um perfil específico
+    build:
+      context: .
+      dockerfile: src/FluxoCaixa.Worker/Dockerfile
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=fluxocaixa-db;Database=FluxoCaixaDb;User Id=sa;Password=K9#mQ!2xZ$vL7*pB;Encrypt=True;TrustServerCertificate=True;Max Pool Size=500;Connection Timeout=30;MultipleActiveResultSets=true
+    depends_on:
+      fluxocaixa-db:
+        condition: service_healthy
+
+  # OBSERVABILIDADE: .NET Aspire Dashboard (Isolado no perfil "metricas")
+  aspire-dashboard:
+    image: ://microsoft.com
+    container_name: fluxocaixa-telemetria
+    profiles:
+      - metricas  # Atribui este contêiner a um perfil específico
+    ports:
+      - "18888:18888"
+      - "18889:18889"
+    environment:
+      - DOTNET_DASHBOARD_UNAUTHENTICATED_ACCESS_ALLOWED=true

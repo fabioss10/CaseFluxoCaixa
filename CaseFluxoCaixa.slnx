@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Itens de Solução/">
     <File Path="C:/Users/Fabio Silva/OneDrive/Documentos/README.md" />
+    <File Path="docker-compose.yml" />
     <File Path="FluxoCaixa.Api/banco_completo.sql" />
   </Folder>
   <Project Path="FluxoCaixa.Api/FluxoCaixa.Api.csproj" />
