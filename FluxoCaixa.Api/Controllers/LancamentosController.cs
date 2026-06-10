@@ -1,6 +1,7 @@
 ﻿using FluxoCaixa.Application.DTOs;
 using FluxoCaixa.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization; 
 using System;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -10,6 +11,7 @@ namespace FluxoCaixa.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class LancamentosController : ControllerBase
     {
         private readonly ICriarLancamentoService _service;
@@ -21,8 +23,9 @@ namespace FluxoCaixa.Api.Controllers
         }
 
         
+        
         [HttpPost]
-        [HttpPost]
+        [Authorize(Policy = "EscopoGrava")] // Aplica OAuth 2.0 + RBAC (Apenas escrita)
         public async Task<IActionResult> Criar([FromBody] CriarLancamentoRequest request, CancellationToken cancellationToken)
         {
             var id = await _service.ExecutarAsync(request, cancellationToken);

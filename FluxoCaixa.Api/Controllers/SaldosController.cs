@@ -1,5 +1,6 @@
 ﻿using FluxoCaixa.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization; 
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ namespace FluxoCaixa.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class SaldosController : ControllerBase
     {
         private readonly IConsultarSaldoService _service;
@@ -19,6 +21,7 @@ namespace FluxoCaixa.Api.Controllers
         }
 
         [HttpGet("{data}", Name = "ObterSaldoPorData")]
+        [Authorize(Policy = "EscopoLeitura")] // Aplica OAuth 2.0 + RBAC 
         public async Task<IActionResult> ObterPorData(string data, CancellationToken cancellationToken)
         {
             if (!DateOnly.TryParse(data, out var dataConsulta))
