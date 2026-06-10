@@ -25,6 +25,14 @@ namespace FluxoCaixa.Infrastructure.Persistence
 
             modelBuilder.Entity<SaldoConsolidado>()
                 .HasKey(x => x.Data);
+
+            // Mapeamento do Índice Filtrado de Alta Performance
+            modelBuilder.Entity<OutboxEvent>(entity =>
+            {
+                entity.HasIndex(x => x.CreatedAt)
+                      .HasDatabaseName("IX_OutboxEvents_Status_Pendente_Erro")
+                      .HasFilter("[Status] = 1 OR [Status] = 3");
+            });
         }
 
     }
