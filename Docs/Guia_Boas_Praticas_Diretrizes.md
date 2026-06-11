@@ -116,5 +116,5 @@ Este documento estabelece as diretrizes arquiteturais, padrões de codificação
 
 ### 7.5 Desacoplamento de Contratos via DTOs de Entrada e Saída (Request/Response)
 * **Diretriz:** Controladores de API nunca devem expor ou receber entidades de domínio diretamente nas suas assinaturas. A variação de contratos externos deve ser blindada por objetos de transferência de dados dedicados.
-* **Aplicação no Projeto:** O endpoint de criação recebe estritamente um `CriarLancamentoRequest` e a consulta devolve um `SaldoDiarioResponse`. Esse desacoplamento total permite que o banco de dados evolua internamente suas tabelas sem que os clientes integrados na API do Banco Carrefour sofram qualquer impacto de quebra de contrato (Breaking Change).
+* **Aplicação no Projeto:** O endpoint de criação recebe estritamente um `CriarLancamentoRequest` e a consulta devolve um `SaldoDiarioResponse`. Esse desacoplamento total permite que o banco de dados evolua internamente suas tabelas sem que os clientes integrados na API sofram qualquer impacto de quebra de contrato (Breaking Change).
 
