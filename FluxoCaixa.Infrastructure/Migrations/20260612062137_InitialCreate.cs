@@ -1,11 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace FluxoCaixa.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class caseFluxoCaixa : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -40,6 +41,27 @@ namespace FluxoCaixa.Infrastructure.Migrations
                 {
                     table.PrimaryKey("PK_OutboxEvents", x => x.Id);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "SaldosConsolidados",
+                columns: table => new
+                {
+                    Data = table.Column<DateOnly>(type: "date", nullable: false),
+                    TotalCreditos = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalDebitos = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Saldo = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    UltimaAtualizacao = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SaldosConsolidados", x => x.Data);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OutboxEvents_Status_Pendente_Erro",
+                table: "OutboxEvents",
+                column: "CreatedAt",
+                filter: "[Status] = 1 OR [Status] = 3");
         }
 
         /// <inheritdoc />
@@ -50,6 +72,9 @@ namespace FluxoCaixa.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "OutboxEvents");
+
+            migrationBuilder.DropTable(
+                name: "SaldosConsolidados");
         }
     }
 }

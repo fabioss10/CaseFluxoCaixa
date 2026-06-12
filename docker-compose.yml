@@ -10,7 +10,7 @@ services:
       - "1433:1433" 
     volumes:
        - fluxocaixa-db-data:/var/opt/mssql #  Garante a persistência dos dados em disco
-       - ./banco_completo.sql:/banco_completo.sql
+       - ./banco_completo.sql:/banco_completo2.sql
     healthcheck:
       # O teste só passa se o banco FluxoCaixaDb existir E a tabela eventoutbox tiver sido criada pelo script
       test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-C", "-S", "localhost,1433", "-U", "sa", "-P", "K9#mQ!2xZ$$vL7*pB", "-Q", "IF DB_ID('FluxoCaixaDb') IS NOT NULL AND OBJECT_ID('FluxoCaixaDb..eventoutbox') IS NOT NULL EXIT(0) ELSE EXIT(1)"]
@@ -26,7 +26,7 @@ services:
       echo 'Aguardando o SQL Server iniciar para injetar o script...';
       until /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'K9#mQ!2xZ$$vL7*pB' -Q 'SELECT 1' &>/dev/null; do sleep 2; done;
       /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'K9#mQ!2xZ$$vL7*pB' -Q \"IF DB_ID('FluxoCaixaDb') IS NULL CREATE DATABASE FluxoCaixaDb;\" && 
-      /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'K9#mQ!2xZ$$vL7*pB' -d FluxoCaixaDb -i /banco_completo.sql &&
+      /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'K9#mQ!2xZ$$vL7*pB' -d FluxoCaixaDb -i /banco_completo2.sql &&
       echo 'Banco de dados inicializado com sucesso!';
       wait"
 

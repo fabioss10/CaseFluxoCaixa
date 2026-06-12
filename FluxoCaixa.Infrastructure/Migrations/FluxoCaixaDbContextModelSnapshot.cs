@@ -70,6 +70,10 @@ namespace FluxoCaixa.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_OutboxEvents_Status_Pendente_Erro")
+                        .HasFilter("[Status] = 1 OR [Status] = 3");
+
                     b.ToTable("OutboxEvents");
                 });
 
