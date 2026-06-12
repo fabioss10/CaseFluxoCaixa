@@ -1,0 +1,100 @@
+name: CI/CD Pipeline - Fluxo Caixa
+
+on:
+  push:
+    branches: [ "master", "develop", "CIDI" ]
+  pull_request:
+    branches: [ "master", "CIDI" ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # ESTÁGIO DE INTEGRAÇÃO CONTÍNUA (CI): Validação de Qualidade e Compilação
+  # ----------------------------------------------------------------------------
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do Código
+      uses: actions/checkout@v4
+
+    - name: Configurar Ambiente .NET 10
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Cache de Dependências do NuGet
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restaurar Dependências
+      run: dotnet restore "FluxoCaixa.Worker/FluxoCaixa.Worker.csproj"
+
+    - name: Compilar Solução (Modo Release)
+      run: dotnet build "FluxoCaixa.Worker/FluxoCaixa.Worker.csproj" -c Release --no-restore
+
+    - name: Executar Testes Unitários e de Integração
+      run: dotnet test "FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" --no-build -c Release -v normal --filter Category!=Performance
+
+  # ----------------------------------------------------------------------------
+  # ESTÁGIO DE ENTREGA CONTÍNUA (CD): Construção e Publicação das Imagens Docker
+  # ----------------------------------------------------------------------------
+  publish-docker-images:
+    name: Build & Push Docker Images
+    needs: build-and-test
+    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/CIDI') && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do Código
+      uses: actions/checkout@v4
+
+    # CORREÇÃO ARQUITETURAL: Normaliza o nome do repositório para minúsculo antes do build
+    - name: Normalizar Nome do Repositório para Lowercase
+      id: string
+      run: |
+        echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
+    - name: Configurar Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Autenticar no GitHub Container Registry (GHCR)
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build e Push - API App
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./FluxoCaixa.Api/Dockerfile
+        push: true
+        # Usa a variável normalizada do ambiente
+        tags: |
+          ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-api:latest
+          ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-api:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build e Push - Worker App
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./FluxoCaixa.Worker/Dockerfile
+        push: true
+        # Usa a variável normalizada do ambiente
+        tags: |
+          ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-worker:latest
+          ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-worker:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max

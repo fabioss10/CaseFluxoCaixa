@@ -4,6 +4,10 @@
     <File Path="docker-compose.yml" />
     <File Path="FluxoCaixa.Api/banco_completo.sql" />
   </Folder>
+  <Folder Name="/Itens de Solução/.github/" />
+  <Folder Name="/Itens de Solução/.github/workflows/">
+    <File Path="ci-cd.yml" />
+  </Folder>
   <Project Path="D:/Projetos/FluxoCaixaChallenge/CaseFluxoCaixa/FluxoCaixa.Api/FluxoCaixa.Api.csproj" />
   <Project Path="D:/Projetos/FluxoCaixaChallenge/CaseFluxoCaixa/FluxoCaixa.Application/FluxoCaixa.Application.csproj" />
   <Project Path="D:/Projetos/FluxoCaixaChallenge/CaseFluxoCaixa/FluxoCaixa.Domain/FluxoCaixa.Domain.csproj" />
