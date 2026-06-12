@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace FluxoCaixa.Application.DTOs
+﻿namespace FluxoCaixa.Application.DTOs
 {
     internal class SaldoDiarioDto
     {

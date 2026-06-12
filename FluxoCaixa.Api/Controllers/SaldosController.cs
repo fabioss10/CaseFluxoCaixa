@@ -1,9 +1,6 @@
 ﻿using FluxoCaixa.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization; 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FluxoCaixa.Api.Controllers
 {

@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using FluxoCaixa.Application.DTOs;
-using FluxoCaixa.Domain.Enums; 
 
 namespace FluxoCaixa.Application.Validators
 {

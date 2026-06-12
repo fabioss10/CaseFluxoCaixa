@@ -7,24 +7,29 @@ using FluxoCaixa.Application.Validators;
 using FluxoCaixa.Domain.Interfaces;
 using FluxoCaixa.Infrastructure.Persistence;
 using FluxoCaixa.Infrastructure.Repositories;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
-using Prometheus;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
-using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Configura o Kestrel para responder na porta da API (7248) e na porta do Health (8081)
-
+var useHttps = builder.Configuration.GetValue("UseHttps", true);
 builder.WebHost.ConfigureKestrel(options =>
 {
     // Porta da API configurada explicitamente para usar HTTPS/SSL 
-    options.ListenAnyIP(7248, listenOptions =>
+
+
+    if (useHttps)
     {
-        listenOptions.UseHttps();
-    });
+        options.ListenAnyIP(7248, o => o.UseHttps());
+    }
+    else
+    {
+        options.ListenAnyIP(7248);
+    }
 
     // Porta de Infraestrutura (Health/Metrics) mantida em HTTP comum (Padrão de mercado)
     options.ListenAnyIP(8081);
@@ -52,10 +57,22 @@ builder.Services.AddScoped<IUnitOfWorkRepository, UnitOfWork>();
 builder.Services.AddValidatorsFromAssemblyContaining<CriarLancamentoRequestValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 
+// Configura os logs nativos para exportar via OTLP (Dashboard)
+builder.Logging.AddOpenTelemetry(logging => logging.AddOtlpExporter());
+
+// Configura as métricas e traces nativos para o Dashboard
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics => metrics.AddAspNetCoreInstrumentation().AddOtlpExporter())
+    .WithTracing(tracing => tracing.AddAspNetCoreInstrumentation().AddOtlpExporter());
 
 
 var app = builder.Build();
 
+app.MapOpenApi();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/openapi/v1.json", "Fluxo Caixa API v1");
+});
 
 // 3. Pipeline do HTTP request
 if (app.Environment.IsDevelopment())
@@ -68,21 +85,16 @@ if (app.Environment.IsDevelopment())
     app.MapHealthChecks("/healthz/detail", new() { ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse })
        .RequireHost("*:8081");
 
-    
 
-    // Adiciona uma rota secundária amigável que renderiza uma página HTML com gráficos
-    app.UseMetricServer();
-    app.MapOpenApi();
-    app.UseSwaggerUI(options =>
+
+    if (useHttps)
     {
-        options.SwaggerEndpoint("/openapi/v1.json", "Fluxo Caixa API v1");
-    });
+        app.UseHttpsRedirection();
+    }
+
+
 }
 
-app.UseWhen(
-    context => context.Connection.LocalPort != 8081,
-    appBuilder => appBuilder.UseHttpsRedirection()
-);
 
 app.UseAuthentication();
 app.UseAuthorization();

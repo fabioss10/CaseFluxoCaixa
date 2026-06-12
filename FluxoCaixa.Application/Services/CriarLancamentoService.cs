@@ -2,10 +2,7 @@
 using FluxoCaixa.Application.Interfaces;
 using FluxoCaixa.Domain.Entities;
 using FluxoCaixa.Domain.Interfaces;
-using System;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FluxoCaixa.Application.Services
 {
@@ -44,7 +41,7 @@ namespace FluxoCaixa.Application.Services
             // Adiciona o evento do Outbox no Change Tracker (em memória)
             await _uow.OutboxEvents.AdicionarAsync(outboxEvent);
 
-            
+
             // O comando abaixo persiste tanto o Lançamento quanto o OutboxEvent em uma ÚNICA transação do banco.
             // Se o banco falhar ao gravar o evento do Outbox, o Lançamento sofre Rollback automático.
             // Isso impede o maior erro em arquiteturas de microsserviços: salvar o dado mas não disparar o evento.

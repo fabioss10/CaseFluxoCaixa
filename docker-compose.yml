@@ -1,0 +1,90 @@
+services:
+  # 1. BANCO DE DADOS 
+  fluxocaixa-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: fluxocaixa-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=K9#mQ!2xZ$$vL7*pB
+    ports:
+      - "1433:1433" 
+    volumes:
+       - fluxocaixa-db-data:/var/opt/mssql #  Garante a persistência dos dados em disco
+       - ./banco_completo.sql:/banco_completo.sql
+    healthcheck:
+      # O teste só passa se o banco FluxoCaixaDb existir E a tabela eventoutbox tiver sido criada pelo script
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-C", "-S", "localhost,1433", "-U", "sa", "-P", "K9#mQ!2xZ$$vL7*pB", "-Q", "IF DB_ID('FluxoCaixaDb') IS NOT NULL AND OBJECT_ID('FluxoCaixaDb..eventoutbox') IS NOT NULL EXIT(0) ELSE EXIT(1)"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s # Dá um tempo inicial para o SQL Server ligar
+   
+    
+    entrypoint: >
+      /bin/bash -c "
+      /opt/mssql/bin/sqlservr & 
+      echo 'Aguardando o SQL Server iniciar para injetar o script...';
+      until /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'K9#mQ!2xZ$$vL7*pB' -Q 'SELECT 1' &>/dev/null; do sleep 2; done;
+      /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'K9#mQ!2xZ$$vL7*pB' -Q \"IF DB_ID('FluxoCaixaDb') IS NULL CREATE DATABASE FluxoCaixaDb;\" && 
+      /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'K9#mQ!2xZ$$vL7*pB' -d FluxoCaixaDb -i /banco_completo.sql &&
+      echo 'Banco de dados inicializado com sucesso!';
+      wait"
+
+  
+
+  # 2. SUA API .NET 10 
+  fluxocaixa-api:
+    image: fluxocaixa-api:latest
+    container_name: fluxocaixa-api-app
+    ports:
+      - "7248:7248" 
+    environment:
+       - UseHttps=false
+       - DOTNET_ENVIRONMENT=Development
+       - ConnectionStrings__DefaultConnection=Server=fluxocaixa-db;Database=FluxoCaixaDb;User Id=sa;Password=K9#mQ!2xZ$$vL7*pB;Encrypt=True;TrustServerCertificate=True;Max Pool Size=500;Connection Timeout=30;MultipleActiveResultSets=true
+       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
+       - OTEL_SERVICE_NAME=fluxocaixa-api # <--- Identifica a API no Dashboard
+
+    build:
+      context: .
+      dockerfile: ./FluxoCaixa.Api/Dockerfile
+    depends_on:
+      fluxocaixa-db:
+        condition: service_healthy
+
+  # 3. PROCESSAMENTO WORKER 
+  fluxocaixa-worker:
+    depends_on:
+      fluxocaixa-db:
+        condition: service_healthy
+      fluxocaixa-api:
+        condition: service_started #  Força o build em fila ordenada, aproveitando 100% do cache criado pela API
+    image: fluxocaixa-worker:latest
+    container_name: fluxocaixa-worker
+    
+    build:
+      context: .
+      dockerfile: ./FluxoCaixa.Worker/Dockerfile 
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=fluxocaixa-db;Database=FluxoCaixaDb;User Id=sa;Password=K9#mQ!2xZ$$vL7*pB;Encrypt=True;TrustServerCertificate=True;Max Pool Size=500;Connection Timeout=30;MultipleActiveResultSets=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889 
+      - OTEL_SERVICE_NAME=fluxocaixa-worker 
+
+  # 4. OBSERVABILIDADE: .NET Aspire Dashboard 
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
+    container_name: fluxocaixa-telemetria
+   
+    ports:
+      - "18888:18888" # Dashboard Web
+      - "18889:18889" # gRPC OTLP Receiver
+
+    environment:
+      - ASPNETCORE_URLS=http://+:18888
+      - ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
+      - ASPNETCORE_ENVIRONMENT=Development
+
+      
+volumes:
+  fluxocaixa-db-data:

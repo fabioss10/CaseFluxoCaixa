@@ -1,9 +1,6 @@
 ﻿using FluxoCaixa.Domain.Entities;
 using FluxoCaixa.Domain.Interfaces;
 using FluxoCaixa.Infrastructure.Persistence;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace FluxoCaixa.Infrastructure.Repositories
@@ -19,13 +16,13 @@ namespace FluxoCaixa.Infrastructure.Repositories
 
         public async Task AdicionarAsync(Lancamento lancamento)
         {
-           
+
             await _context.Lancamentos.AddAsync(lancamento);
         }
 
         public async Task<Lancamento?> ObterPorIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
-           
+
             return await _context.Lancamentos
                 .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         }

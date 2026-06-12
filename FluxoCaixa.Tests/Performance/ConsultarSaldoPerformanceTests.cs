@@ -1,11 +1,6 @@
-﻿using NBomber.Contracts;
-using NBomber.CSharp;
-using System;
-using System.Net.Http;
+﻿using NBomber.CSharp;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Xunit;
 
 namespace FluxoCaixa.Tests.Performance
 {

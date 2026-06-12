@@ -1,12 +1,7 @@
 ﻿using FluxoCaixa.Application.Interfaces;
 using FluxoCaixa.Domain.Entities;
 using FluxoCaixa.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FluxoCaixa.Application.Services
 {
@@ -65,16 +60,16 @@ namespace FluxoCaixa.Application.Services
                     else
                     {
                         saldo.AplicarLancamento(lancamento);
-                       
+
                     }
 
-                   
+
                     evento.MarcarComoProcessado();
                 }
                 catch
                 {
                     evento.MarcarComoErro();
-                  
+
                 }
             }
 

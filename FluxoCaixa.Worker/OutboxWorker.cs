@@ -1,10 +1,4 @@
 ﻿using FluxoCaixa.Application.Interfaces;
-using FluxoCaixa.Domain.Interfaces;
-using FluxoCaixa.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 
 namespace FluxoCaixa.Worker
@@ -52,6 +46,6 @@ namespace FluxoCaixa.Worker
                     stoppingToken);
             }
         }
-        
+
     }
 }

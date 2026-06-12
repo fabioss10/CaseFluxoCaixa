@@ -1,16 +1,13 @@
 ﻿using FluxoCaixa.Application.DTOs;
 using FluxoCaixa.Application.Interfaces;
 using FluxoCaixa.Domain.Interfaces;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FluxoCaixa.Application.Services
 {
     public class ConsultarSaldoService : IConsultarSaldoService
     {
-        
-        
+
+
         private readonly ISaldoConsolidadoRepository _saldoRepository;
 
         public ConsultarSaldoService(ISaldoConsolidadoRepository saldoRepository)

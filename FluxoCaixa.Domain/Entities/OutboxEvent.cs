@@ -1,12 +1,9 @@
 ﻿using FluxoCaixa.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace FluxoCaixa.Domain.Entities
 {
 
-    
+
     public class OutboxEvent
     {
         public Guid Id { get; private set; }
