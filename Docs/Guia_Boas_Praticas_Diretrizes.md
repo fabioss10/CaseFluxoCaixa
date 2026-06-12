@@ -92,7 +92,33 @@ Este documento estabelece as diretrizes arquiteturais, padrões de codificação
 * **Diretriz:** Não misture requisições operacionais de negócios com requisições técnicas de instrumentação.
 * **Aplicação no Projeto:** O servidor Kestrel escuta e responde em canais segregados. A porta 7248 gerencia o tráfego público HTTPS de negócios e a documentação do Swagger UI. A porta 8081 atua como o perímetro restrito HTTP exclusivo para consumo interno de orquestradores (como o Docker/Kubernetes) através das rotas `/healthz`, `/healthz/detail` e telemetria.
 
-### 6.4 Instrumentação Assíncrona Nativa e OTLP (OpenTelemetry Protocol)
-* **Diretriz:** É proibido expor endpoints públicos que fabricam grandes strings de texto dinâmicas para coleta de métricas (modelo Prometheus Scrape) diretamente na porta de negócios, pois isso concorre por CPU com os clientes da API.
-* **Aplicação no Projeto:** A telemetria de performance (latência, requisições por segundo e recursos de hardware) utiliza o motor nativo de alta eficiência do runtime (`services.AddMetrics()`). O descarregamento das informações é delegado em background de forma totalmente assíncrona via exportador **OTLP** para o contêiner dedicado do **.NET Aspire Dashboard** (porta 18888), assegurando que o monitoramento visual tenha impacto zero no desempenho operacional das transações financeiras.
+### 6.4 Cláusulas de Guarda e Princípio Fail-Fast no Construtor (Defensive Programming)
+* **Diretriz:** Métodos e construtores de classes críticas devem validar suas dependências obrigatórias logo na primeira linha de execução, impedindo que o sistema rode em estado inválido.
+* **Aplicação no Projeto:** Todos os construtores da camada de aplicação utilizam Cláusulas de Guarda unindo o operador de coalescência nula ao lançamento de exceções: `_uow = uow ?? throw new ArgumentNullException(nameof(uow));`. Isso garante que falhas de configuração de injeção de dependência no `Program.cs` quebrem a aplicação imediatamente na inicialização (*Fail-Fast*), evitando erros enigmáticos de `NullReferenceException` no meio de uma transação financeira.
+
+### 6.5 Segregação de Responsabilidade de Leitura e Escrita (CQRS Semântico)
+* **Diretriz:** Serviços de consulta pura (*Read-Only*) não devem carregar o peso de gerenciamento de estado e transações de componentes de escrita.
+* **Aplicação no Projeto:** O sistema aplica o conceito de segregação de responsabilidades. Enquanto os serviços de escrita (`CriarLancamentoService` e `ProcessadorOutboxService`) injetam o `IUnitOfWorkRepository` para coordenar transações complexas, o serviço de consulta (`ConsultarSaldoService`) injeta diretamente o repositório específico de leitura. Isso simplifica a assinatura das classes, economiza recursos do Change Tracker e prepara o sistema para uma futura separação física de bancos de dados de leitura e escrita (CQRS definitivo).
+
+## 7. Modelagem Avançada de Dados, Contratos e Confiabilidade
+
+### 7.1 Tipagem Cronológica com DateOnly vs DateTime
+* **Diretriz:** Em domínios financeiros e de relatórios consolidados, tabelas agregadas por dia nunca devem utilizar o tipo `DateTime` para representar a chave temporal, pois a presença de horas, minutos e milissegundos quebra agrupamentos e exige conversões caras de banco de dados.
+* **Aplicação no Projeto:** A tabela de `SaldosConsolidados` utiliza estritamente o tipo **`DateOnly`** em sua chave primária. Isso garante que o fuso horário (Timezone) do servidor não altere o dia da consolidação do saldo, forçando a integridade semântica do requisito de negócio de "Saldo Diário Consolidado" diretamente na tipagem da engine.
+
+### 7.2 Mapeamento Defensivo de Fallback na Leitura (Null Interception)
+* **Diretriz:** APIs de consulta nunca devem estourar exceções ou repassar nulos estruturais para o cliente caso o banco de dados não possua registros para a chave informada.
+* **Aplicação no Projeto:** O método `ObterPorDataAsync` da `ConsultarSaldoService` intercepta o retorno nulo do repositório de forma defensiva. Em vez de repassar a ausência de dados, o serviço constrói dinamicamente um DTO de resposta zerado e consistente (`Saldo = 0`, `TotalCreditos = 0`, `TotalDebitos = 0`, `UltimaAtualizacao = null`). Isso preserva o contrato previsível da API REST e blinda o frontend contra falhas de renderização.
+
+### 7.3 Isolamento da Camada de Domínio contra Serialização (Agnosticismo de Formato)
+* **Diretriz:** Entidades de Domínio Rico não devem carregar atributos de frameworks de serialização (como `[JsonPropertyName]` ou `[JsonIgnore]`) e nem ser expostas diretamente em assinaturas de API, sob o risco de vazamento de escopo.
+* **Aplicação no Projeto:** A `CriarLancamentoService` cria o payload do Outbox utilizando um **objeto anônimo estruturado** durante a execução do `JsonSerializer.Serialize`. Isso garante que a entidade rica `Lancamento` permaneça com suas propriedades e comportamentos totalmente isolados, impedindo que mudanças futuras na estrutura interna da entidade quebrem retroativamente os payloads históricos que já estão gravados na fila de Outbox.
+
+### 7.4 Abordagem SUT (System Under Test) e Isolamento de I/O em Cadeia
+* **Diretriz:** Testes unitários limpos devem declarar explicitamente o alvo de teste através da convenção SUT, isolando-o de qualquer efeito colateral de rede através de injeções dinâmicas coordenadas (Mocks).
+* **Aplicação no Projeto:** A suíte de testes declara a service real como `_sut` (System Under Test) e injeta nela instâncias mockadas via `_uowMock.Object`. Nos testes do processador de lote, implementamos o encadeamento de comportamentos (*Mock Callbacks*): o mock simula o comportamento real do Change Tracker do EF Core, capturando a primeira entidade nova e devolvendo a **mesma instância** na iteração subsequente do loop. Isso permite testar a lógica cumulativa complexa do micro-batching inteiramente na memória RAM, sem precisar de infraestrutura física.
+
+### 7.5 Desacoplamento de Contratos via DTOs de Entrada e Saída (Request/Response)
+* **Diretriz:** Controladores de API nunca devem expor ou receber entidades de domínio diretamente nas suas assinaturas. A variação de contratos externos deve ser blindada por objetos de transferência de dados dedicados.
+* **Aplicação no Projeto:** O endpoint de criação recebe estritamente um `CriarLancamentoRequest` e a consulta devolve um `SaldoDiarioResponse`. Esse desacoplamento total permite que o banco de dados evolua internamente suas tabelas sem que os clientes integrados na API sofram qualquer impacto de quebra de contrato (Breaking Change).
 
