@@ -2,9 +2,9 @@ name: CI/CD Pipeline - Fluxo Caixa
 
 on:
   push:
-    branches: [ "master", "develop" , "CICD" ]
+    branches: [ "master", "develop" , "CIDI" ]
   pull_request:
-    branches: [ "master" , "CICD" ]
+    branches: [ "master" , "CIDI" ]
 
 jobs:
   # ----------------------------------------------------------------------------
@@ -51,7 +51,7 @@ jobs:
   publish-docker-images:
     name: Build & Push Docker Images
     needs: build-and-test
-    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/CICD') && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/CIDI') && github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
