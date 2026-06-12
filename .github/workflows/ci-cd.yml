@@ -2,18 +2,15 @@ name: CI/CD Pipeline - Fluxo Caixa
 
 on:
   push:
-    branches: [ "master", "develop", "CIDI" ]
+    branches: [ "main", "master", "CIDI" ]
   pull_request:
-    branches: [ "master", "CIDI" ]
+    branches: [ "main", "master" , "CIDI"  ]
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  # ----------------------------------------------------------------------------
-  # ESTÁGIO DE INTEGRAÇÃO CONTÍNUA (CI): Validação de Qualidade e Compilação
-  # ----------------------------------------------------------------------------
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
@@ -35,37 +32,30 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
-    - name: Cache de Dependências do NuGet
-      uses: actions/cache@v4
-      with:
-        path: ~/.nuget/packages
-        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.sln') }}
-        restore-keys: |
-          ${{ runner.os }}-nuget-
+    - name: Restaurar Dependências
+      run: |
+        dotnet restore ./FluxoCaixa.Api/FluxoCaixa.Api.csproj
+        dotnet restore ./FluxoCaixa.Worker/FluxoCaixa.Worker.csproj
+        dotnet restore ./FluxoCaixa.Tests/FluxoCaixa.Tests.csproj
 
-    - name: Restaurar Dependências da Solução
-      run: dotnet restore
+    - name: Compilar Projetos (Modo Release)
+      run: |
+        dotnet build ./FluxoCaixa.Api/FluxoCaixa.Api.csproj -c Release --no-restore
+        dotnet build ./FluxoCaixa.Worker/FluxoCaixa.Worker.csproj -c Release --no-restore
 
-    - name: Compilar Solução Completa
-      run: dotnet build -c Release --no-restore
+    - name: Executar Testes Unitários
+      run: dotnet test ./FluxoCaixa.Tests/FluxoCaixa.Tests.csproj --no-build -c Release -v normal --filter Category!=Performance
 
-    - name: Executar Testes Unitários e de Integração
-      run: dotnet test "FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" --no-build -c Release -v normal --filter Category!=Performance
-
-  # ----------------------------------------------------------------------------
-  # ESTÁGIO DE ENTREGA CONTÍNUA (CD): Construção e Publicação das Imagens Docker
-  # ----------------------------------------------------------------------------
   publish-docker-images:
     name: Build & Push Docker Images
     needs: build-and-test
-    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/CIDI') && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/CIDI') && github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout do Código
       uses: actions/checkout@v4
 
-    # CORREÇÃO ARQUITETURAL: Normaliza o nome do repositório para minúsculo antes do build
     - name: Normalizar Nome do Repositório para Lowercase
       id: string
       run: echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
@@ -86,7 +76,6 @@ jobs:
         context: .
         file: ./FluxoCaixa.Api/Dockerfile
         push: true
-        # Usa a variável normalizada do ambiente
         tags: |
           ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-api:latest
           ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-api:${{ github.sha }}
@@ -99,7 +88,6 @@ jobs:
         context: .
         file: ./FluxoCaixa.Worker/Dockerfile
         push: true
-        # Usa a variável normalizada do ambiente
         tags: |
           ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-worker:latest
           ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-worker:${{ github.sha }}
