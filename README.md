@@ -26,64 +26,52 @@ cd CaseFluxoCaixa
 
 ---
 
-### 3. Execução do Ecossistema (Duas Alternativas)
+### 3. Subir os Containers da Aplicação
+Inicializa a Web API junto com o banco de dados SQL Server, o Worker de segundo plano (*Transactional Outbox*) e o painel gráfico oficial de métricas da Microsoft.
 
-Escolha o cenário de inicialização desejado através das flags de perfis do Docker Compose:
-
-#### Cenário A: Execução Completa (Recomendado para Avaliação)
-Inicializa a Web API junto com o Worker de segundo plano (*Transactional Outbox*) e o painel gráfico oficial de métricas da Microsoft.
+Execute o comando abaixo e aguarde o processo de build e inicialização terminar:
 ```bash
-docker-compose --profile processamento --profile metricas up --build
+ docker compose up -d --build 
 ```
 
-#### Cenário B: Execução Simplificada (Apenas Banco e API)
-Caso o hardware da máquina seja limitado e você queira apenas testar as rotas HTTP de forma ágil, poupando CPU e memória RAM:
-```bash
-docker-compose up --build
-```
+
+#### Portas de Acesso e Links Úteis Liberados:
+* **Swagger UI (Documentação da API):** [http://localhost:7248/swagger/index.html](http://localhost:7248/swagger/index.html)
+* **Health Check Detalhado (JSON):** [http://localhost:8081/healthz/detail](http://localhost:8081/healthz/detail)
+* **.NET Aspire Dashboard (Telemetria Gráfica):** [http://localhost:18888](http://localhost:18888) *(Acesse a aba **Metrics** para monitorar a API em tempo real durante os testes de carga).*
 
 ---
 
-### 4. Portas de Acesso e Links Úteis
+### 4. Execução dos Testes Automatizados
 
-A arquitetura implementa isolamento perimetral de rede, segregando o tráfego de negócios do tráfego de infraestrutura por portas físicas distintas:
+O projeto separa estritamente os testes rápidos de regressão dos testes pesados de carga do NBomber. 
 
-* **Portal de Negócios e Testes (Porta 7248):**
-  * Swagger UI: [http://localhost:7248/swagger/index.html](http://localhost:7248/swagger/index.html)
-  * Rota de Autenticação: `POST http://localhost:7248/api/Auth/login-gerente`
-* **Portal de Infraestrutura e Resiliência (Porta 8081):**
-  * Health Check Detalhado (JSON): [http://localhost:8081/healthz/detail](http://localhost:8081/healthz/detail)
-  * Health Check Leve (Máquinas): [http://localhost:8081/healthz](http://localhost:8081/healthz)
-* **Portal de Telemetria Gráfica (Porta 18888 - Apenas no Cenário A):**
-  * .NET Aspire Dashboard: [http://localhost:18888](http://localhost:18888) *(Acesse a aba **Metrics** para monitorar latência, CPU e requisições por segundo).*
+#### Passo A: Executar Apenas Testes Unitários e de Integração
+Valida as regras de negócio, dominância arquitetural e integrações locais em poucos segundos, **excluindo** os testes pesados de performance:
 
----
-
-### 5. Execução dos Testes Automatizados
-
-O projeto separa estritamente os testes rápidos de regressão dos testes pesados de carga do NBomber através do atributo `[Trait]`.
-
-#### 1. Executar Apenas Testes Unitários e de Integração
-Valida regras de negócio em poucos segundos sem causar estresse na infraestrutura física:
 ```bash
 dotnet test --filter "Category!=Performance"
 ```
 
-#### 2. Executar Teste de Carga e Performance (NBomber)
-Dispara um bombardeio controlado de 50 requisições por segundo (RPS) durante 30 segundos contra a API contêinerizada.
+#### Passo B: Executar o Teste de Carga Específico (NBomber)
+Dispara um bombardeio controlado de 50 requisições por segundo (RPS) durante 30 segundos contra a API contêinerizada para validar o critério de aceitação de negócio (máximo de 5% de falhas).
+
 
 ```bash
-dotnet test --filter "Category=Performance"
+ dotnet test --filter ExecutarTesteDeCarga_DeveSuportar50RequisicoesPorSegundo_ComMaximo5PorCentoDeFalhas
 ```
-> **Nota de Avaliação:** Certifique-se de que o ecossistema completo do Docker (Cenário A) está ativo em outro terminal antes de disparar. Recomenda-se assistir ao comportamento das curvas de latência abrindo o painel do Aspire Dashboard em tempo real.
+
 
 ---
 
-### Encerrar a Execução
-Para parar as aplicações, liberar a memória RAM e limpar os recursos criados de forma segura, utilize o comando:
+### 5. Encerrar o Ambiente
+Para parar as aplicações, remover os containers, liberar a memória RAM e limpar os recursos criados de forma segura, utilize o comando:
 ```bash
-docker-compose down
+Docker compose down
 ```
+---
+
+
 ## Explicação do Sistema
 
 A solução foi desenvolvida utilizando C# com o ecossistema do .NET 10, adotando princípios de Clean Architecture e Domain-Driven Design (DDD) para resolver de forma performática e resiliente o fluxo de caixa do comerciante. O funcionamento do sistema baseia-se em três etapas integradas:

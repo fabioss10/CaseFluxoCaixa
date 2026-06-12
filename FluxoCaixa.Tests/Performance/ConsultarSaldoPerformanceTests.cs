@@ -8,20 +8,28 @@ namespace FluxoCaixa.Tests.Performance
     {
         [Fact]
         [Trait("Category", "Performance")]
-        public void ExecutarTesteDeCarga_DeveSuportar50RequisicoesPorSegundo_ComMaximo5PorCentoDeFalhas()
+        public async Task ExecutarTesteDeCarga_DeveSuportar50RequisicoesPorSegundo_ComMaximo5PorCentoDeFalhas()
         {
-            // 1. ARRANGE: Configura o cliente HTTP e obtém o token de autenticação antes do teste iniciar
-            var httpClient = new HttpClient();
+            // 1. ARRANGE: Abordagem compatível com .NET 10 para desligar a checagem de SSL no localhost
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+            };
+            var httpClient = new HttpClient(handler);
+
+            // Busca dinamicamente a URL da variável de ambiente, ou usa o fallback com HTTP
+            string baseUrl = Environment.GetEnvironmentVariable("API_BASE_URL") ?? "http://localhost:7248";
+
             var dataTeste = DateTime.Today.ToString("yyyy-MM-dd");
             string tokenJwt = string.Empty;
 
-            // Executa o login síncrono no simulador para pegar o token do Gerente/Analista que tem acesso à leitura
+            // Executa o login assíncrono real
             try
             {
-                var loginResponse = httpClient.PostAsync("https://localhost:7248/api/Auth/login-somente-leitura", null).Result;
+                var loginResponse = await httpClient.PostAsync($"{baseUrl}/api/Auth/login-somente-leitura", null);
                 if (loginResponse.IsSuccessStatusCode)
                 {
-                    var jsonString = loginResponse.Content.ReadAsStringAsync().Result;
+                    var jsonString = await loginResponse.Content.ReadAsStringAsync();
                     using var doc = JsonDocument.Parse(jsonString);
                     tokenJwt = doc.RootElement.GetProperty("access_token").GetString() ?? string.Empty;
                 }
@@ -43,8 +51,8 @@ namespace FluxoCaixa.Tests.Performance
             {
                 try
                 {
-                    // Realiza a chamada passando o cabeçalho Authorization já configurado no HttpClient
-                    var response = await httpClient.GetAsync($"https://localhost:7248/api/saldos/{dataTeste}");
+                    // Realiza a chamada passando o cabeçalho Authorization já configurado
+                    var response = await httpClient.GetAsync($"{baseUrl}/api/saldos/{dataTeste}");
 
                     // Se responder HTTP 200 OK ou HTTP 404 NotFound (data sem saldo), a requisição foi bem-sucedida
                     if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NotFound)
