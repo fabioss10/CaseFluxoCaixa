@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "master", "CIDI" ]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   # ----------------------------------------------------------------------------
   # ESTÁGIO DE INTEGRAÇÃO CONTÍNUA (CI): Validação de Qualidade e Compilação
