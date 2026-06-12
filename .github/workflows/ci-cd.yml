@@ -43,7 +43,7 @@ jobs:
         dotnet build ./FluxoCaixa.Api/FluxoCaixa.Api.csproj -c Release --no-restore
         dotnet build ./FluxoCaixa.Worker/FluxoCaixa.Worker.csproj -c Release --no-restore
 
-     - name: Executar Testes Unitários
+    - name: Executar Testes Unitários
       run: dotnet test ./FluxoCaixa.Tests/FluxoCaixa.Tests.csproj -c Release -v normal --filter Category!=Performance
 
   publish-docker-images:
