@@ -31,12 +31,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
+    # Ajustado para restaurar todas as dependências da solução/projetos irmãos
     - name: Restaurar Dependências
       run: dotnet restore "FluxoCaixa.Worker/FluxoCaixa.Worker.csproj"
 
+    # Adicionada a flag --no-restore para o linter aproveitar o passo anterior
     - name: Verificar Formatação de Código (Lint)
-      run: dotnet format "FluxoCaixa.Worker/FluxoCaixa.Worker.csproj" --verify-no-changes
-      
+      run: dotnet format "FluxoCaixa.Worker/FluxoCaixa.Worker.csproj" --verify-no-changes --no-restore
 
     - name: Compilar Solução (Modo Release)
       run: dotnet build "FluxoCaixa.Worker/FluxoCaixa.Worker.csproj" -c Release --no-restore
