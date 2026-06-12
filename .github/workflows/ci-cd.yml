@@ -35,14 +35,21 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
-    - name: Restaurar Dependências
-      run: dotnet restore "FluxoCaixa.Worker/FluxoCaixa.Worker.csproj"
+    -- name: Cache de Dependências do NuGet
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.sln') }}
+        restore-keys: ${{ runner.os }}-nuget-
 
-    - name: Compilar Solução (Modo Release)
-      run: dotnet build "FluxoCaixa.Worker/FluxoCaixa.Worker.csproj" -c Release --no-restore
+      - name: Restaurar Dependências da Solução
+        run: dotnet restore
 
-    - name: Executar Testes Unitários e de Integração
-      run: dotnet test "FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" --no-build -c Release -v normal --filter Category!=Performance
+      - name: Compilar Solução Completa
+        run: dotnet build -c Release --no-restore
+
+      - name: Executar Testes Unitários e de Integração
+        run: dotnet test "FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" --no-build -c Release -v normal --filter Category!=Performance
 
   # ----------------------------------------------------------------------------
   # ESTÁGIO DE ENTREGA CONTÍNUA (CD): Construção e Publicação das Imagens Docker
@@ -60,8 +67,7 @@ jobs:
     # CORREÇÃO ARQUITETURAL: Normaliza o nome do repositório para minúsculo antes do build
     - name: Normalizar Nome do Repositório para Lowercase
       id: string
-      run: |
-        echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+      run: echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
     - name: Configurar Docker Buildx
       uses: docker/setup-buildx-action@v3

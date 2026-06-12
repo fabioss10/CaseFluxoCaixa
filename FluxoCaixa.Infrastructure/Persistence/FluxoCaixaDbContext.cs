@@ -30,6 +30,15 @@ namespace FluxoCaixa.Infrastructure.Persistence
                       .HasDatabaseName("IX_OutboxEvents_Status_Pendente_Erro")
                       .HasFilter("[Status] = 1 OR [Status] = 3");
             });
+
+           
+        }
+        // Aplica automaticamente decimal(18,2) para TODAS as entidades mapeadas neste contexto
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        {
+            configurationBuilder
+                .Properties<decimal>()
+                .HaveColumnType("decimal(18,2)");
         }
 
     }

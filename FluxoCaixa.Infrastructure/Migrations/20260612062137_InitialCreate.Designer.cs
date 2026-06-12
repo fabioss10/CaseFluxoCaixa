@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FluxoCaixa.Infrastructure.Migrations
 {
     [DbContext(typeof(FluxoCaixaDbContext))]
-    [Migration("20260603223859_caseFluxoCaixa")]
-    partial class caseFluxoCaixa
+    [Migration("20260612062137_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -73,7 +73,33 @@ namespace FluxoCaixa.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_OutboxEvents_Status_Pendente_Erro")
+                        .HasFilter("[Status] = 1 OR [Status] = 3");
+
                     b.ToTable("OutboxEvents");
+                });
+
+            modelBuilder.Entity("SaldoConsolidado", b =>
+                {
+                    b.Property<DateOnly>("Data")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("Saldo")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalCreditos")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalDebitos")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UltimaAtualizacao")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Data");
+
+                    b.ToTable("SaldosConsolidados");
                 });
 #pragma warning restore 612, 618
         }
