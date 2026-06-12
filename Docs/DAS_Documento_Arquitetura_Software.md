@@ -91,7 +91,6 @@ A observabilidade do sistema atende aos padrões de missão crítica de alta dis
 A solução resolve por completo a dependência de infraestruturas locais de terceiros através de um ecossistema multi-container totalmente portátil gerenciado pelo arquivo docker-compose.yml na raiz della solução.
 
 * **Provisionamento Automatizado do Banco:** O contêiner do SQL Server mapeia o script banco_completo.sql em um volume ligado ao diretório /docker-entrypoint-initdb.d/. O container aplica as estruturas e tabelas automaticamente na subida física do serviço.
-* **Controle por Perfis de Execução (profiles):** Os serviços pesados e de suporte técnico (fluxocaixa-worker e aspire-dashboard) foram isolados em perfis específicos. Isso permite modularidade total no terminal, permitindo subir apenas Banco e API por padrão (docker-compose up) ou o ecossistema completo para auditoria estendida (docker-compose --profile processamento --profile metricas up --build).
 * **Segurança Inter-Container:** As variáveis de rede utilizam o DNS interno do Docker para comunicação (Server=fluxocaixa-db). A API ativa a flag OTEL_EXPORTER_OTLP_INSECURE=true para forçar o descarregamento gRPC de métricas em texto claro estritamente dentro della rede virtual isolada do Docker, blindando as portas contra vazamentos externos.
 
 ---

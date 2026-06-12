@@ -108,10 +108,10 @@ Aprovado
 Disponibilizar endpoints de instrumentação técnica, como Health Checks e coleta de métricas, na mesma porta lógica e canal público de rotas de negócios expõe a API a vetores de ataque por varredura de vulnerabilidades, além de misturar o tráfego operacional [|]. Sob testes de estresse agressivos ou instabilidade nas rotas REST de negócios, as sondas de saúde automáticas de orquestradores sofrem timeouts por concorrência de rede, gerando falsos positivos de queda de contêiner.
 
 ### Decisão
-Isolamento perimetral do Kestrel via injeção de escuta em múltiplas portas físicas. Configura-se a porta 7248 exclusivamente para rotas HTTPS públicas de negócios e documentação do Swagger UI [|]. Paralelamente, estabelece-se a porta 8081 para tráfego HTTP sem criptografia focado unicamente nas sondas /healthz, diagnósticos JSON e telemetria OpenTelemetry Protocol (OTLP). Adota-se o middleware condicional app.UseWhen() para contornar restrições globais de redirecionamento SSL neste canal.
+Isolamento perimetral do Kestrel via injeção de escuta em múltiplas portas físicas. Configura-se a porta 7248 exclusivamente para rotas HTTPS públicas de negócios e documentação do Swagger UI . Paralelamente, estabelece-se a porta 8081 para tráfego HTTP sem criptografia focado unicamente nas sondas /healthz, diagnósticos JSON e telemetria OpenTelemetry Protocol (OTLP). Adota-se o middleware condicional app.UseWhen() para contornar restrições globais de redirecionamento SSL neste canal.
 
 ### Consequências
-* **Positivas:** Isolamento físico completo de tráfego de rede [|]. Garante que o monitoramento responda em regime estável (< 6ms) mesmo durante testes de carga máximos da API de negócios. Protege endpoints sensíveis de infraestrutura contra acessos da internet pública.
+* **Positivas:** Isolamento físico completo de tráfego de rede. Garante que o monitoramento responda em regime estável (< 6ms) mesmo durante testes de carga máximos da API de negócios. Protege endpoints sensíveis de infraestrutura contra acessos da internet pública.
 * **Negativas:** Eleva a complexidade de infraestrutura e mapeamento de portas lógicas na tabela do arquivo Docker Compose.
 
 ---
