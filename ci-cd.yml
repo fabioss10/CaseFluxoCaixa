@@ -2,9 +2,9 @@ name: CI/CD Pipeline - Fluxo Caixa
 
 on:
   push:
-    branches: [ "master", "develop" , "cicd" ]
+    branches: [ "master", "develop" , "CICD" ]
   pull_request:
-    branches: [ "master" , "cicd" ]
+    branches: [ "master" , "CICD" ]
 
 jobs:
   # ----------------------------------------------------------------------------
