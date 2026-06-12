@@ -12,7 +12,7 @@ C4Context
     title Diagrama de Contexto do Sistema de Fluxo de Caixa
     
     Person(comerciante, "Comerciante / Usuário", "Usuário do sistema que precisa registrar lançamentos e consultar o saldo consolidado.")
-    System(sistemaFluxo, "Sistema de Fluxo de Caixa", "Gerencia o fluxo de caixa, registra débitos/créditos de forma atômica e consolida os saldos diários de forma assíncrona.")
+    System(sistemaFluxo, "Sistema de Fluxo de Caixa", "Gerencia o fluxo de caixa, registra débitos/créditos de forma atômica, consolida os saldos diários de forma assíncrona e expõe telemetria estruturada.")
     System_Ext(mensageria, "Broker de Mensageria (Evolução)", "Sistema externo (RabbitMQ/Kafka) para onde os eventos de outbox validados serão retransmitidos.")
 
     Rel(comerciante, sistemaFluxo, "Registra lançamentos e consulta saldos", "HTTP / JSON")
@@ -29,16 +29,25 @@ C4Container
     title Diagrama de Contêiner do Sistema de Fluxo de Caixa
     
     Person(comerciante, "Comerciante / Usuário", "Consumidor do ecossistema.")
+    Person(sre, "Engenheiro / SRE", "Operador que analisa a saúde do ecossistema.")
     
     System_Boundary(sistema_boundary, "Fronteira do Sistema de Fluxo de Caixa") {
         Container(api, "Web API", "C# .NET 10 / ASP.NET Core", "Expõe os endpoints REST para criação de lançamentos e consulta de saldos. Executa validações de borda (Fail-Fast).")
         Container(worker, "Outbox Worker", "C# .NET 10 / Hosted Service", "Serviço em segundo plano executado em loop (Singleton) que consome os eventos e consolida os saldos em lote.")
+        Container(migrations, "EF Migrations Container", ".NET 10 SDK / CLI (Efêmero)", "Init Container efêmero que aplica o esquema de banco de dados e encerra a execução com sucesso antes do start da API.")
+        Container(aspire, ".NET Aspire Dashboard", "App Dashboard Image", "Painel de controle centralizador de telemetria distribuída (Logs, Metrics e Traces).")
         ContainerDb(banco, "Banco de Dados Transacional", "Microsoft SQL Server", "Armazena as tabelas de Lançamentos, Eventos de Outbox e os Saldos Diários Consolidados.")
     }
 
     Rel(comerciante, api, "Faz requisições HTTP", "HTTPS / JSON (Porta: 7248)")
+    Rel(sre, aspire, "Monitora telemetria", "HTTP / Browser (Porta: 18888)")
+    
+    Rel(migrations, banco, "Aplica Migrations no Startup", "dotnet ef database update")
     Rel(api, banco, "Grava Lançamento + OutboxEvent de forma atômica", "Entity Framework Core 10 / ACID")
     Rel(worker, banco, "Lê eventos pendentes e atualiza o saldo diário em lote", "Entity Framework Core 10 (.Local)")
+    
+    Rel(api, aspire, "Descarrega Telemetria", "gRPC / OTLP (Porta: 18889)")
+    Rel(worker, aspire, "Descarrega Telemetria", "gRPC / OTLP (Porta: 18889)")
 ```
 
 ---
@@ -51,6 +60,7 @@ C4Component
     title Diagrama de Componentes Internos
     
     ContainerDb(banco, "Banco de Dados Transacional", "Microsoft SQL Server", "Persistência do ecossistema.")
+    Container(aspire, ".NET Aspire Dashboard", "App Dashboard", "Coletor OpenTelemetry.")
     
     Container_Boundary(api_worker_components, "Componentes Lógicos Internos (.NET 10)") {
         Component(controller, "Lancamentos / Saldos Controllers", "ASP.NET Core Controller", "Ponto de entrada HTTP. Mapeia rotas e repassa o CancellationToken do HttpContext.")
@@ -60,6 +70,7 @@ C4Component
         Component(uow, "UnitOfWork & Repositories", "Infrastructure Persistence", "Encapsula o DbContext. Garante transações coordenadas e expõe o Change Tracker (.Local).")
         Component(hostedService, "OutboxWorker", "Background Hosted Service", "Bate ritmicamente a cada 3 segundos disparando o processamento assíncrono.")
         Component(processador, "ProcessadorOutboxService", "Application Service", "O coração do sistema. Executa o Micro-batching acumulando lançamentos do mesmo dia na CPU.")
+        Component(otelExporter, "OpenTelemetry SDK Listener", "Extensions Diagnostics", "Interfere no pipeline capturando automaticamente logs estruturados, métricas e tracing distribuído.")
     }
 
     Rel(controller, validator, "Valida DTO de entrada")
@@ -73,6 +84,7 @@ C4Component
     Rel(processador, uow, "Puxa eventos, consome via .Local e executa o CommitAsync em lote")
     
     Rel(uow, banco, "Envia o lote final de comandos SQL unificados", "ADO.NET / TCP")
+    Rel(otelExporter, aspire, "Envia stream assíncrono em segundo plano", "gRPC / OTLP")
 ```
 
 ---
