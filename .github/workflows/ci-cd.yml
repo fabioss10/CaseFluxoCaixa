@@ -35,7 +35,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
-      - name: Cache de Dependências do NuGet
+    - name: Cache de Dependências do NuGet
       uses: actions/cache@v4
       with:
         path: ~/.nuget/packages
@@ -43,14 +43,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
-      - name: Restaurar Dependências da Solução
-        run: dotnet restore
+    - name: Restaurar Dependências da Solução
+      run: dotnet restore
 
-      - name: Compilar Solução Completa
-        run: dotnet build -c Release --no-restore
+    - name: Compilar Solução Completa
+      run: dotnet build -c Release --no-restore
 
-      - name: Executar Testes Unitários e de Integração
-        run: dotnet test "FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" --no-build -c Release -v normal --filter Category!=Performance
+    - name: Executar Testes Unitários e de Integração
+      run: dotnet test "FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" --no-build -c Release -v normal --filter Category!=Performance
 
   # ----------------------------------------------------------------------------
   # ESTÁGIO DE ENTREGA CONTÍNUA (CD): Construção e Publicação das Imagens Docker
