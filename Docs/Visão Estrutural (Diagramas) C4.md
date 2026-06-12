@@ -34,7 +34,7 @@ C4Container
     System_Boundary(sistema_boundary, "Fronteira do Sistema de Fluxo de Caixa") {
         Container(api, "Web API", "C# .NET 10 / ASP.NET Core", "Expõe os endpoints REST para criação de lançamentos e consulta de saldos. Executa validações de borda (Fail-Fast).")
         Container(worker, "Outbox Worker", "C# .NET 10 / Hosted Service", "Serviço em segundo plano executado em loop (Singleton) que consome os eventos e consolida os saldos em lote.")
-        Container(migrations, "EF Migrations Container", ".NET 10 SDK / CLI (Efêmero)", "Init Container efêmero que aplica o esquema de banco de dados e encerra a execução com sucesso antes do start da API.")
+        Container(migrations, "EF Migrations Container (EVOLUÇÂO)", ".NET 10 SDK / CLI (Efêmero)", "Init Container efêmero que aplica o esquema de banco de dados e encerra a execução com sucesso antes do start da API.")
         Container(aspire, ".NET Aspire Dashboard", "App Dashboard Image", "Painel de controle centralizador de telemetria distribuída (Logs, Metrics e Traces).")
         ContainerDb(banco, "Banco de Dados Transacional", "Microsoft SQL Server", "Armazena as tabelas de Lançamentos, Eventos de Outbox e os Saldos Diários Consolidados.")
     }
