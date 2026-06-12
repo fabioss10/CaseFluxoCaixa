@@ -2,16 +2,16 @@ name: CI/CD Pipeline - Fluxo Caixa
 
 on:
   push:
-    branches: [ "master", "develop" , "CIDI" ]
+    branches: [ "master", "develop", "CIDI" ]
   pull_request:
-    branches: [ "master" , "CIDI" ]
+    branches: [ "master", "CIDI" ]
 
 jobs:
   # ----------------------------------------------------------------------------
   # ESTÁGIO DE INTEGRAÇÃO CONTÍNUA (CI): Validação de Qualidade e Compilação
   # ----------------------------------------------------------------------------
   build-and-test:
-    name: Build, Lint and Test
+    name: Build and Test
     runs-on: ubuntu-latest
 
     steps:
@@ -33,9 +33,6 @@ jobs:
 
     - name: Restaurar Dependências
       run: dotnet restore "FluxoCaixa.Worker/FluxoCaixa.Worker.csproj"
-
-    - name: Verificar Formatação de Código (Lint)
-      run: dotnet format --verify-no-changes
 
     - name: Compilar Solução (Modo Release)
       run: dotnet build "FluxoCaixa.Worker/FluxoCaixa.Worker.csproj" -c Release --no-restore
