@@ -39,7 +39,7 @@ jobs:
 
     # Nota Arquitetural: Isola testes de carga/performance para evitar overhead e lentidão no CI
     - name: Executar Testes Unitários e de Integração
-      run: dotnet test --no-build -c Release -v normal --filter Category!=Performance
+      run: dotnet test "FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" --no-build -c Release -v normal --filter Category!=Performance
 
   # ----------------------------------------------------------------------------
   # ESTÁGIO DE ENTREGA CONTÍNUA (CD): Construção e Publicação das Imagens Docker
