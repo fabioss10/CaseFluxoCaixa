@@ -37,13 +37,11 @@ jobs:
     - name: Compilar Solução (Modo Release)
       run: dotnet build "FluxoCaixa.Worker/FluxoCaixa.Worker.csproj" -c Release --no-restore
 
-    # Nota Arquitetural: Isola testes de carga/performance para evitar overhead e lentidão no CI
     - name: Executar Testes Unitários e de Integração
       run: dotnet test "FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" --no-build -c Release -v normal --filter Category!=Performance
 
   # ----------------------------------------------------------------------------
   # ESTÁGIO DE ENTREGA CONTÍNUA (CD): Construção e Publicação das Imagens Docker
-  # Só executa se o estágio de CI passar com sucesso na branch principal
   # ----------------------------------------------------------------------------
   publish-docker-images:
     name: Build & Push Docker Images
@@ -54,6 +52,12 @@ jobs:
     steps:
     - name: Checkout do Código
       uses: actions/checkout@v4
+
+    # CORREÇÃO ARQUITETURAL: Normaliza o nome do repositório para minúsculo antes do build
+    - name: Normalizar Nome do Repositório para Lowercase
+      id: string
+      run: |
+        echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
     - name: Configurar Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -71,9 +75,10 @@ jobs:
         context: .
         file: ./FluxoCaixa.Api/Dockerfile
         push: true
+        # Usa a variável normalizada do ambiente
         tags: |
-          ghcr.io/${{ github.repository }}/fluxocaixa-api:latest
-          ghcr.io/${{ github.repository }}/fluxocaixa-api:${{ github.sha }}
+          ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-api:latest
+          ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-api:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
@@ -83,9 +88,9 @@ jobs:
         context: .
         file: ./FluxoCaixa.Worker/Dockerfile
         push: true
+        # Usa a variável normalizada do ambiente
         tags: |
-          ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/fluxocaixa-worker:latest
-          ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/fluxocaixa-worker:${{ github.sha }}
-        
+          ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-worker:latest
+          ghcr.io/${{ env.REPO_LOWERCASE }}/fluxocaixa-worker:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
