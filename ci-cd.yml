@@ -51,7 +51,7 @@ jobs:
   publish-docker-images:
     name: Build & Push Docker Images
     needs: build-and-test
-    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/cicd') && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/CICD') && github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
