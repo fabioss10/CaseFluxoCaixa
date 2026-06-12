@@ -1,10 +1,6 @@
-﻿using FluxoCaixa.Domain.Entities;
-using FluxoCaixa.Domain.Interfaces;
+﻿using FluxoCaixa.Domain.Interfaces;
 using FluxoCaixa.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FluxoCaixa.Infrastructure.Repositories
 {
@@ -38,16 +34,16 @@ namespace FluxoCaixa.Infrastructure.Repositories
 
         public async Task AdicionarAsync(SaldoConsolidado saldo)
         {
-            
+
             await _db.SaldosConsolidados.AddAsync(saldo);
         }
 
         public async Task AtualizarAsync(SaldoConsolidado saldo)
         {
-            
+
             _db.SaldosConsolidados.Update(saldo);
 
-            
+
             await Task.CompletedTask;
         }
 

@@ -1,8 +1,5 @@
 ﻿using FluxoCaixa.Domain.Interfaces;
 using FluxoCaixa.Infrastructure.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace FluxoCaixa.Infrastructure.Persistence
 {

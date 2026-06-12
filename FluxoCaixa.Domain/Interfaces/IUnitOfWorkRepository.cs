@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace FluxoCaixa.Domain.Interfaces
+﻿namespace FluxoCaixa.Domain.Interfaces
 {
     /// <summary>
     /// Herda de IDisposable para garantir a liberação segura dos recursos de conexão do DbContext.

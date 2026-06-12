@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace FluxoCaixa.Api.Infrastructure.Configurations
+﻿namespace FluxoCaixa.Api.Infrastructure.Configurations
 {
     public class JwtOptions
     {

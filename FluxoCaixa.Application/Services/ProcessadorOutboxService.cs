@@ -1,12 +1,7 @@
 ﻿using FluxoCaixa.Application.Interfaces;
 using FluxoCaixa.Domain.Entities;
 using FluxoCaixa.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FluxoCaixa.Application.Services
 {
@@ -91,7 +86,7 @@ namespace FluxoCaixa.Application.Services
             // atuaria como um Relay. Se a fila falhasse, o evento não seria marcado como processado, garantindo 
             // 'At-Least-Once Delivery' sem quebrar ou corromper a consistência do fluxo de caixa.
             //
-            
+
             // 9. EVOLUÇÃO DE ESCALA MÁXIMA (CDC COM DEBEZIUM) & INVERSÃO DE DEPENDÊNCIA
             // Para escalar o sistema a níveis globais sem competir por conexões de banco de dados, o Worker 
             // em C# pode ser substituído por uma ferramenta de Change Data Capture (CDC) como o Debezium (Kafka Connect).
@@ -155,16 +150,16 @@ namespace FluxoCaixa.Application.Services
                     else
                     {
                         saldo.AplicarLancamento(lancamento);
-                       
+
                     }
 
-                   
+
                     evento.MarcarComoProcessado();
                 }
                 catch
                 {
                     evento.MarcarComoErro();
-                  
+
                 }
             }
 

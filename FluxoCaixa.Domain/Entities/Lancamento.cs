@@ -1,9 +1,4 @@
 ﻿using FluxoCaixa.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Runtime.Intrinsics.X86;
-using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FluxoCaixa.Domain.Entities
 {
@@ -39,7 +34,7 @@ namespace FluxoCaixa.Domain.Entities
             TipoLancamento tipo,
             decimal valor)
         {
-           
+
             Id = Guid.CreateVersion7();
             Tipo = tipo;
             Valor = valor;

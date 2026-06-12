@@ -1,13 +1,8 @@
-﻿using Xunit;
-using FluxoCaixa.Application.Services;
-using FluxoCaixa.Application.DTOs;
+﻿using FluxoCaixa.Application.Services;
 using FluxoCaixa.Domain.Entities;
 using FluxoCaixa.Domain.Enums;
 using FluxoCaixa.Domain.Interfaces;
 using Moq;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FluxoCaixa.Tests.Application
 {
