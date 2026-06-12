@@ -20,7 +20,7 @@ services:
        - fluxocaixa-db-data:/var/opt/mssql #  Garante a persistência dos dados em disco
        - ./banco_completo.sql:/banco_completo2.sql
     healthcheck:
-      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-C", "-S", "localhost,1433", "-U", "sa", "-P", "${DB_PASSWORD:-K9#mQ!2xZ$$vL7*pB}", "-Q", "IF DB_ID('FluxoCaixaDb') IS NOT NULL AND OBJECT_ID('FluxoCaixaDb..outboxevents') IS NOT NULL EXIT(0) ELSE EXIT(1)"]
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-C", "-S", "localhost,1433", "-U", "sa", "-P", "${DB_PASSWORD:-K9#mQ!2xZ$$vL7*pB}", "-Q", "IF DB_ID('FluxoCaixaDb') IS NOT NULL AND OBJECT_ID('FluxoCaixaDb..OutboxEvents') IS NOT NULL EXIT(0) ELSE EXIT(1)"]
       interval: 5s
       timeout: 5s
       retries: 10

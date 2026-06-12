@@ -12,7 +12,7 @@ namespace FluxoCaixa.Domain.Entities
 
         public string EventType { get; private set; }
 
-        public string Payload { get; private set; }
+        public  string Payload { get; private set; }
 
         public StatusEvento Status { get; private set; }
 
