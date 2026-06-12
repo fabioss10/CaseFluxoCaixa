@@ -35,14 +35,36 @@ Execute o comando abaixo e aguarde o processo de build e inicialização termina
 ```
 
 
-#### Portas de Acesso e Links Úteis Liberados:
+#### 5. Portas de Acesso e Links Úteis Liberados:
+
+O container Docker foi projetado seguindo as boas práticas de **Microserviços** e **Cloud Native**, operando em praticas de mercado **HTTP**. 
+
 * **Swagger UI (Documentação da API):** [http://localhost:7248/swagger/index.html](http://localhost:7248/swagger/index.html)
 * **Health Check Detalhado (JSON):** [http://localhost:8081/healthz/detail](http://localhost:8081/healthz/detail)
-* **.NET Aspire Dashboard (Telemetria Gráfica):** [http://localhost:18888](http://localhost:18888) *(Acesse a aba **Metrics** para monitorar a API em tempo real durante os testes de carga).*
+* **.NET Aspire Dashboard (Telemetria Gráfica):** [http://localhost:18888]
 
 ---
 
-### 4. Execução dos Testes Automatizados
+### 6. Autenticação e Autorização (Swagger)
+
+Para executar os métodos da API, você precisa gerar um token de acesso de acordo com o nível de permissão necessário e adicioná-lo ao cadeado do Swagger.
+
+#### 1. Tipos de Acesso
+Escolha o endpoint correto conforme a sua necessidade:
+* **Leitura e Escrita:** Permite consultar e alterar dados. Use o endpoint `POST /api/Auth/login-leitura-escrita`.
+* **Somente Leitura:** Permite apenas consultar dados. Use o endpoint `POST /api/Auth/login-somente-leitura`.
+
+#### 2. Passo a Passo
+1. Abra a interface do **Swagger**.
+2. Vá até o endpoint de login escolhido.
+3. Clique em **Try it out** e clique em **Execute**.
+4. No JSON de retorno, copie o valor da variável `access_token`.
+5. Vá até o topo do Swagger e clique em **Authorize** (ícone do cadeado).
+6. Cole o valor do token e clique em **Authorize**.
+
+> **Importante:** Se você logar como *Somente Leitura*, os métodos que alteram dados retornarão erro de permissão.
+
+### 7. Execução dos Testes Automatizados
 
 O projeto separa estritamente os testes rápidos de regressão dos testes pesados de carga do NBomber. 
 
@@ -62,12 +84,13 @@ Dispara um bombardeio controlado de 50 requisições por segundo (RPS) durante 3
 ```
 
 
+
 ---
 
-### 5. Encerrar o Ambiente
+### 8. Encerrar o Ambiente
 Para parar as aplicações, remover os containers, liberar a memória RAM e limpar os recursos criados de forma segura, utilize o comando:
 ```bash
-Docker compose down
+docker compose down -v
 ```
 ---
 

@@ -1,3 +1,11 @@
+
+networks:
+  fluxocaixa-net:
+    driver: bridge
+
+volumes:
+  fluxocaixa-db-data:
+
 services:
   # 1. BANCO DE DADOS 
   fluxocaixa-db:
@@ -5,28 +13,28 @@ services:
     container_name: fluxocaixa-sqlserver
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=K9#mQ!2xZ$$vL7*pB
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD:-K9#mQ!2xZ$$vL7*pB}
     ports:
       - "1433:1433" 
     volumes:
        - fluxocaixa-db-data:/var/opt/mssql #  Garante a persistência dos dados em disco
        - ./banco_completo.sql:/banco_completo2.sql
     healthcheck:
-      # O teste só passa se o banco FluxoCaixaDb existir E a tabela eventoutbox tiver sido criada pelo script
-      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-C", "-S", "localhost,1433", "-U", "sa", "-P", "K9#mQ!2xZ$$vL7*pB", "-Q", "IF DB_ID('FluxoCaixaDb') IS NOT NULL AND OBJECT_ID('FluxoCaixaDb..eventoutbox') IS NOT NULL EXIT(0) ELSE EXIT(1)"]
-      interval: 3s
-      timeout: 3s
-      retries: 20
-      start_period: 5s # Dá um tempo inicial para o SQL Server ligar
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-C", "-S", "localhost,1433", "-U", "sa", "-P", "${DB_PASSWORD:-K9#mQ!2xZ$$vL7*pB}", "-Q", "IF DB_ID('FluxoCaixaDb') IS NOT NULL AND OBJECT_ID('FluxoCaixaDb..outboxevents') IS NOT NULL EXIT(0) ELSE EXIT(1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s # Dá um tempo inicial para o SQL Server ligar
    
-    
+    # Automação local para Idempotência e Carga Inicial.
+    # Em produção, esta infraestrutura é isolada via Init Containers.
     entrypoint: >
       /bin/bash -c "
       /opt/mssql/bin/sqlservr & 
       echo 'Aguardando o SQL Server iniciar para injetar o script...';
-      until /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'K9#mQ!2xZ$$vL7*pB' -Q 'SELECT 1' &>/dev/null; do sleep 2; done;
-      /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'K9#mQ!2xZ$$vL7*pB' -Q \"IF DB_ID('FluxoCaixaDb') IS NULL CREATE DATABASE FluxoCaixaDb;\" && 
-      /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'K9#mQ!2xZ$$vL7*pB' -d FluxoCaixaDb -i /banco_completo2.sql &&
+      until /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P '${DB_PASSWORD:-K9#mQ!2xZ$$vL7*pB}' -Q 'SELECT 1' &>/dev/null; do sleep 2; done;
+      /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P '${DB_PASSWORD:-K9#mQ!2xZ$$vL7*pB}' -Q \"IF DB_ID('FluxoCaixaDb') IS NULL CREATE DATABASE FluxoCaixaDb;\" && 
+      /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P '${DB_PASSWORD:-K9#mQ!2xZ$$vL7*pB}' -d FluxoCaixaDb -i /banco_completo2.sql &&
       echo 'Banco de dados inicializado com sucesso!';
       wait"
 
@@ -41,7 +49,7 @@ services:
     environment:
        - UseHttps=false
        - DOTNET_ENVIRONMENT=Development
-       - ConnectionStrings__DefaultConnection=Server=fluxocaixa-db;Database=FluxoCaixaDb;User Id=sa;Password=K9#mQ!2xZ$$vL7*pB;Encrypt=True;TrustServerCertificate=True;Max Pool Size=500;Connection Timeout=30;MultipleActiveResultSets=true
+       - ConnectionStrings__DefaultConnection=Server=fluxocaixa-db;Database=FluxoCaixaDb;User Id=sa;Password=${DB_PASSWORD:-K9#mQ!2xZ$$vL7*pB};Encrypt=True;TrustServerCertificate=True;Max Pool Size=500;Connection Timeout=30;MultipleActiveResultSets=true
        - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889
        - OTEL_SERVICE_NAME=fluxocaixa-api # <--- Identifica a API no Dashboard
 
@@ -67,7 +75,7 @@ services:
       dockerfile: ./FluxoCaixa.Worker/Dockerfile 
     environment:
       - DOTNET_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=fluxocaixa-db;Database=FluxoCaixaDb;User Id=sa;Password=K9#mQ!2xZ$$vL7*pB;Encrypt=True;TrustServerCertificate=True;Max Pool Size=500;Connection Timeout=30;MultipleActiveResultSets=true
+      - ConnectionStrings__DefaultConnection=Server=fluxocaixa-db;Database=FluxoCaixaDb;User Id=sa;Password=${DB_PASSWORD:-K9#mQ!2xZ$$vL7*pB};Encrypt=True;TrustServerCertificate=True;Max Pool Size=500;Connection Timeout=30;MultipleActiveResultSets=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889 
       - OTEL_SERVICE_NAME=fluxocaixa-worker 
 
@@ -85,6 +93,3 @@ services:
       - ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true
       - ASPNETCORE_ENVIRONMENT=Development
 
-      
-volumes:
-  fluxocaixa-db-data:
