@@ -41,7 +41,7 @@ O container Docker foi projetado seguindo as boas práticas de **Microserviços*
 
 * **Swagger UI (Documentação da API):** [http://localhost:7248/swagger/index.html](http://localhost:7248/swagger/index.html)
 * **Health Check Detalhado (JSON):** [http://localhost:8081/healthz/detail](http://localhost:8081/healthz/detail)
-* **.NET Aspire Dashboard (Telemetria Gráfica):** [http://localhost:18888]
+* **.NET Aspire Dashboard (Telemetria Gráfica):** [http://localhost:18888](http://localhost:18888)
 
 ---
 

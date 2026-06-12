@@ -45,7 +45,8 @@ services:
     image: fluxocaixa-api:latest
     container_name: fluxocaixa-api-app
     ports:
-      - "7248:7248" 
+      - "7248:7248"
+      - "8081:8081" 
     environment:
        - UseHttps=false
        - DOTNET_ENVIRONMENT=Development
