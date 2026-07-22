@@ -8,12 +8,12 @@
   <Folder Name="/Itens de Solução/.github/workflows/">
     <File Path="ci-cd.yml" />
   </Folder>
-  <Project Path="D:/Projetos/FluxoCaixaChallenge/CaseFluxoCaixa/FluxoCaixa.Api/FluxoCaixa.Api.csproj" />
-  <Project Path="D:/Projetos/FluxoCaixaChallenge/CaseFluxoCaixa/FluxoCaixa.Application/FluxoCaixa.Application.csproj" />
-  <Project Path="D:/Projetos/FluxoCaixaChallenge/CaseFluxoCaixa/FluxoCaixa.Domain/FluxoCaixa.Domain.csproj" />
-  <Project Path="D:/Projetos/FluxoCaixaChallenge/CaseFluxoCaixa/FluxoCaixa.Infrastructure/FluxoCaixa.Infrastructure.csproj" />
-  <Project Path="D:/Projetos/FluxoCaixaChallenge/CaseFluxoCaixa/FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" />
-  <Project Path="D:/Projetos/FluxoCaixaChallenge/CaseFluxoCaixa/FluxoCaixa.Worker/FluxoCaixa.Worker.csproj" Id="f7d8a9bb-798d-4371-ae47-e5b018308523">
+  <Project Path="../CaseFluxoCaixa/FluxoCaixa.Api/FluxoCaixa.Api.csproj" />
+  <Project Path="../CaseFluxoCaixa/FluxoCaixa.Application/FluxoCaixa.Application.csproj" />
+  <Project Path="../CaseFluxoCaixa/FluxoCaixa.Domain/FluxoCaixa.Domain.csproj" />
+  <Project Path="../CaseFluxoCaixa/FluxoCaixa.Infrastructure/FluxoCaixa.Infrastructure.csproj" />
+  <Project Path="../CaseFluxoCaixa/FluxoCaixa.Tests/FluxoCaixa.Tests.csproj" />
+  <Project Path="../CaseFluxoCaixa/FluxoCaixa.Worker/FluxoCaixa.Worker.csproj" Id="f7d8a9bb-798d-4371-ae47-e5b018308523">
     <Build Solution="Debug|*" Project="false" />
   </Project>
 </Solution>
